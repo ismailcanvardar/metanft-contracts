@@ -13,4 +13,4 @@ resources/ganache-test.txt
 tmp
 deployments
 
-resources
+/resources
