@@ -12,8 +12,8 @@ import "../interfaces/IExchangeConfig.sol";
  * as well as calculating the exchange fee for a given amount.
  */
 contract ExchangeConfig is IExchangeConfig, Ownable2Step {
-    uint8 private exchangeFeePercentage = 5;
-    uint8 public constant BASE_DIVIDER = 100;
+    uint16 private exchangeFeePercentage = 500; // Defines exchange fee percentage, 5% as default
+    uint16 public constant BASE_DIVIDER = 10_000; // Defines maximum percentage in calculation, it means 100% with extra 2 decimals
 
     event SetExchangeFeePercentage(uint256 percentage);
 
@@ -25,7 +25,7 @@ contract ExchangeConfig is IExchangeConfig, Ownable2Step {
      * @dev Returns the current exchange fee percentage.
      * @return The exchange fee percentage.
      */
-    function getExchangeFeePercentage() external view override returns (uint8) {
+    function getExchangeFeePercentage() external view override returns (uint16) {
         return exchangeFeePercentage;
     }
 

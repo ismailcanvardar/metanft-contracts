@@ -10,30 +10,25 @@ import "../interfaces/IRentableConfig.sol";
  * @dev A contract for managing rentable configurations including maker and taker fee percentages.
  */
 contract RentableConfig is Ownable2Step, IRentableConfig {
-    uint8 public makerFeePercentage;
-    uint8 public takerFeePercentage;
-    uint8 public constant BASE_DIVIDER = 100;
+    uint16 public makerFeePercentage = 2_000; // Defines taker fee percentage in calculation, it means 20% with extra 2 decimals
+    uint16 public takerFeePercentage = 1_000; // Defines taker fee percentage in calculation, it means 10% with extra 2 decimals
+    uint16 public constant BASE_DIVIDER = 10_000; // Defines maximum percentage in calculation, it means 100% with extra 2 decimals
 
     event SetMakerFeePercentage(uint256 percentage);
     event SetTakerFeePercentage(uint256 percentage);
 
     /**
      * @dev Constructor.
-     * @param _makerFeePercentage The initial maker fee percentage.
-     * @param _takerFeePercentage The initial taker fee percentage.
      */
-    constructor(uint8 _makerFeePercentage, uint8 _takerFeePercentage) {
+    constructor() {
         _transferOwnership(_msgSender());
-
-        makerFeePercentage = _makerFeePercentage;
-        takerFeePercentage = _takerFeePercentage;
     }
 
     /**
      * @dev Sets the maker fee percentage.
      * @param newPercentage The new maker fee percentage to set.
      */
-    function setMakerFeePercentage(uint8 newPercentage) external onlyOwner {
+    function setMakerFeePercentage(uint16 newPercentage) external onlyOwner {
         makerFeePercentage = newPercentage;
     }
 
@@ -41,7 +36,7 @@ contract RentableConfig is Ownable2Step, IRentableConfig {
      * @dev Sets the taker fee percentage.
      * @param newPercentage The new taker fee percentage to set.
      */
-    function setTakerFeePercentage(uint8 newPercentage) external onlyOwner {
+    function setTakerFeePercentage(uint16 newPercentage) external onlyOwner {
         takerFeePercentage = newPercentage;
     }
 
@@ -75,7 +70,7 @@ contract RentableConfig is Ownable2Step, IRentableConfig {
      */
     function _calculateFee(
         uint256 _amount,
-        uint8 _percentage
+        uint16 _percentage
     ) internal pure returns (uint256) {
         return (_amount * _percentage) / BASE_DIVIDER;
     }

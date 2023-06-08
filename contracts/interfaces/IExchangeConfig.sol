@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 interface IExchangeConfig {
-    function getExchangeFeePercentage() external view returns (uint8);
+    function getExchangeFeePercentage() external view returns (uint16);
 
     function calculateExchangeFee(
         uint256 amount

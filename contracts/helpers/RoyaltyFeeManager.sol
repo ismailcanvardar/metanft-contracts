@@ -10,8 +10,8 @@ import "../lib/RoyaltyFeeManagerStructs.sol";
  * @dev A contract for managing royalty fee configurations for NFTs.
  */
 contract RoyaltyFeeManager {
-    uint8 public constant BASE_DIVIDER = 100;
-    uint8 public maximumFeePercentage;
+    uint16 public maximumFeePercentage = 1_000; // Defines maximum fee percentage in calculation, it means 10% with extra 2 decimals
+    uint16 public constant BASE_DIVIDER = 10_000; // Defines maximum percentage in calculation, it means 100% with extra 2 decimals
     mapping(address => mapping(uint256 => RoyaltyFeeManagerStructs.RoyaltyFeeConfig))
         private configs;
     mapping(address => mapping(uint256 => address)) private creators;
@@ -22,14 +22,6 @@ contract RoyaltyFeeManager {
         uint256 tokenId,
         address newCreator
     );
-
-    /**
-     * @dev Constructor.
-     * @param _maximumPercentage The maximum fee percentage allowed.
-     */
-    constructor(uint8 _maximumPercentage) {
-        maximumFeePercentage = _maximumPercentage;
-    }
 
     /**
      * @dev Modifier to check if the caller is the owner of the NFT.
