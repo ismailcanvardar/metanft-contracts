@@ -1,6 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { CONSTRUCTOR_PARAMS, CONTRACTS } from "../constants";
+import { CONTRACTS } from "../constants";
 
 const func: DeployFunction = async ({
   deployments,
@@ -40,7 +40,7 @@ const func: DeployFunction = async ({
 
   const royaltyFeeManager = await deploy(CONTRACTS.helpers.RoyaltyFeeManager, {
     from: deployer,
-    args: [CONSTRUCTOR_PARAMS.RoyaltyFeeManager.MAXIMUM_FEE_PERCENTAGE],
+    args: [],
     log: true,
     skipIfAlreadyDeployed: true,
   });

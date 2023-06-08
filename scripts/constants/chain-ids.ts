@@ -13,7 +13,7 @@ const CHAIN_IDS = {
     ARBITRUM_RINKEBY: 421611,
     OPTIMISM_KOVAN: 69,
     METACHAIN: 6382,
-    ELANOR: 1972,
+    ELEANOR: 1972,
 };
 
 export default CHAIN_IDS;
