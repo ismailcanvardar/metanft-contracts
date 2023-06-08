@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
@@ -10,10 +10,10 @@ contract MockERC721 is ERC721URIStorage {
 
     constructor() ERC721("MockERC721", "mERC") {}
 
-    function mintItem(address user, string memory tokenURI)
-        public
-        returns (uint256)
-    {
+    function mintItem(
+        address user,
+        string memory tokenURI
+    ) public returns (uint256) {
         uint256 newItemId = _tokenIds.current();
         _mint(user, newItemId);
         _setTokenURI(newItemId, tokenURI);

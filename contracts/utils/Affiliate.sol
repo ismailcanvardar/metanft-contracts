@@ -1,37 +1,47 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
-contract Affiliate is Ownable {
-    // 20% invitor user percentage - 10% invited user percentage
-    uint8 private _AFFILIATE_INVITOR_FEE_PERCENTAGE = 20;
-    uint8 private _AFFILIATE_INVITED_FEE_PERCENTAGE = 10;
-    uint8 private constant _BASE_DIVIDER = 100;
+contract Affiliate is Ownable2Step {
+    uint8 public invitorFeePercentage;
+    uint8 public invitedFeePercentage;
+    uint8 public constant BASE_DIVIDER = 100;
     mapping(address => address) private affiliates;
 
     event SetAffiliateFeePercentage(uint8 newInvitorFee, uint8 newInvitedFee);
     event RegisterAffiliate(address invitor, address invited);
 
-    function getAffiliateAddress(address invited) external view returns(address) {
-        return affiliates[invited];
+    constructor() {
+        _transferOwnership(_msgSender());
+
+        invitorFeePercentage = 20;
+        invitedFeePercentage = 10;
     }
 
-    function getAffiliateFees() external view returns(uint8 invitorFeePercentage, uint8 invitedFeePercentage) {
-        return (_AFFILIATE_INVITOR_FEE_PERCENTAGE, _AFFILIATE_INVITED_FEE_PERCENTAGE);
-    }
+    function setAffiliateFeePercentages(
+        uint8 newInvitorFeePercentage,
+        uint8 newInvitedFeePercentage
+    ) external onlyOwner returns (bool) {
+        invitorFeePercentage = newInvitorFeePercentage;
+        invitedFeePercentage = newInvitedFeePercentage;
 
-    function setAffiliateFeePercentages(uint8 newInvitorFee, uint8 newInvitedFee) external onlyOwner returns(bool) {
-        _AFFILIATE_INVITOR_FEE_PERCENTAGE = newInvitorFee;
-        _AFFILIATE_INVITED_FEE_PERCENTAGE = newInvitedFee;
-
-        emit SetAffiliateFeePercentage(newInvitorFee, newInvitedFee);
+        emit SetAffiliateFeePercentage(
+            newInvitorFeePercentage,
+            newInvitedFeePercentage
+        );
 
         return true;
     }
 
-    function registerAffiliate(address invitor, address invited) external returns(bool) {
-        require(invited == msg.sender, "registerAffiliate: Must register with your own address.");
+    function registerAffiliate(
+        address invitor,
+        address invited
+    ) external returns (bool) {
+        require(
+            invited == _msgSender(),
+            "registerAffiliate: Must register with your own address."
+        );
 
         address affiliate = affiliates[invited];
 
@@ -46,10 +56,22 @@ contract Affiliate is Ownable {
         return false;
     }
 
-    function calculateAffiliateFees(uint256 exchangeFeeAmount) external view returns(uint256 invitorFeeAmount, uint256 invitedFeeAmount) {
+    function calculateAffiliateFees(
+        uint256 exchangeFeeAmount
+    )
+        external
+        view
+        returns (uint256 invitorFeeAmount, uint256 invitedFeeAmount)
+    {
         return (
-            (exchangeFeeAmount * _AFFILIATE_INVITOR_FEE_PERCENTAGE) / _BASE_DIVIDER, 
-            (exchangeFeeAmount * _AFFILIATE_INVITED_FEE_PERCENTAGE) / _BASE_DIVIDER
+            (exchangeFeeAmount * invitorFeePercentage) / BASE_DIVIDER,
+            (exchangeFeeAmount * invitedFeePercentage) / BASE_DIVIDER
         );
+    }
+
+    function getAffiliateAddress(
+        address invited
+    ) public view returns (address) {
+        return affiliates[invited];
     }
 }

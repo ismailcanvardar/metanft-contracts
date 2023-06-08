@@ -1,18 +1,14 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 contract InitializedProxy {
     address public immutable logic;
 
-    constructor(
-        address _logic,
-        bytes memory _initializationCalldata
-    ) {
+    constructor(address _logic, bytes memory _initializationCalldata) {
         logic = _logic;
-        // Initialize metodunu çalıştırmak için delegatecall yap
-        (bool _ok, bytes memory returnData) =
-            _logic.delegatecall(_initializationCalldata);
-        // Delegatecall başarılı mı kontrol et
+        (bool _ok, bytes memory returnData) = _logic.delegatecall(
+            _initializationCalldata
+        );
         require(_ok, string(returnData));
     }
 
@@ -26,12 +22,12 @@ contract InitializedProxy {
             returndatacopy(ptr, 0, size)
 
             switch result
-                case 0 {
-                    revert(ptr, size)
-                }
-                default {
-                    return(ptr, size)
-                }
+            case 0 {
+                revert(ptr, size)
+            }
+            default {
+                return(ptr, size)
+            }
         }
     }
 
