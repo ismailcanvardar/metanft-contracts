@@ -7,6 +7,12 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "../helpers/Payment.sol";
 import "../interfaces/IRentableConfig.sol";
 
+/**
+ * @title Rentable Contract
+ * @dev A smart contract for renting assets with optional collateral.
+ * This contract allows users to put assets on rent, lease them to other users,
+ * and end leases.
+ */
 contract Rentable is Ownable2Step, Payment {
     address public feeCollector;
     IRentableConfig public rentableConfig;
@@ -50,6 +56,11 @@ contract Rentable is Ownable2Step, Payment {
         rentableConfig = _rentableConfig;
     }
 
+    /**
+     * @dev Modifier to check if an item is rentable.
+     * @param _originAddress The address of the contract that owns the asset.
+     * @param _tokenId The ID of the asset.
+     */
     modifier isRentable(address _originAddress, uint256 _tokenId) {
         require(
             !activeRents[_originAddress][_tokenId],
@@ -58,6 +69,11 @@ contract Rentable is Ownable2Step, Payment {
         _;
     }
 
+    /**
+     * @dev Modifier to check if the caller is the owner of the asset.
+     * @param _originAddress The address of the contract that owns the asset.
+     * @param _tokenId The ID of the asset.
+     */
     modifier isAssetOwner(address _originAddress, uint256 _tokenId) {
         require(
             leases[_originAddress][_tokenId].asset.owner == _msgSender(),
@@ -66,18 +82,35 @@ contract Rentable is Ownable2Step, Payment {
         _;
     }
 
+    /**
+     * @dev Sets the fee collector address.
+     * @param newAddress The new address of the fee collector.
+     */
     function setFeeCollector(address newAddress) external onlyOwner {
         feeCollector = newAddress;
 
         emit SetFeeCollector(newAddress);
     }
 
+    /**
+     * @dev Sets the address of the rentable configuration contract.
+     * @param newAddress The new address of the rentable configuration contract.
+     */
     function setRentableConfig(IRentableConfig newAddress) external onlyOwner {
         rentableConfig = newAddress;
 
         emit SetRentableConfig(newAddress);
     }
 
+    /**
+     * @dev Puts an asset on rent.
+     * @param originAddress The address of the contract that owns the asset.
+     * @param tokenId The ID of the asset to be put on rent.
+     * @param hasCollateral Boolean indicating if collateral is required.
+     * @param collateralAmount The amount of collateral required.
+     * @param pricePerDay The rental price per day.
+     * @return A boolean indicating if the operation was successful.
+     */
     function putAssetOnRent(
         address originAddress,
         uint256 tokenId,
@@ -115,6 +148,13 @@ contract Rentable is Ownable2Step, Payment {
         return true;
     }
 
+    /**
+     * @dev Leases an asset.
+     * @param originAddress The address of the contract that owns the asset.
+     * @param tokenId The ID of the asset to be leased.
+     * @param rentDurationInDays The duration of the lease in days.
+     * @return A boolean indicating if the operation was successful.
+     */
     function lease(
         address originAddress,
         uint256 tokenId,
@@ -160,6 +200,12 @@ contract Rentable is Ownable2Step, Payment {
         return true;
     }
 
+    /**
+     * @dev Ends a lease and returns the asset to the owner.
+     * @param originAddress The address of the contract that owns the asset.
+     * @param tokenId The ID of the leased asset to be returned.
+     * @return A boolean indicating if the operation was successful.
+     */
     function endLease(
         address originAddress,
         uint256 tokenId
@@ -214,6 +260,13 @@ contract Rentable is Ownable2Step, Payment {
         return true;
     }
 
+    /**
+     * @dev Retrieves the information about an asset.
+     * @param originAddress The address of the contract that owns the asset.
+     * @param tokenId The ID of the asset.
+     * @return A tuple containing a boolean indicating if the asset is actively rented,
+     * the lease information, and the tenant's address.
+     */
     function getAssetInfo(
         address originAddress,
         uint256 tokenId
