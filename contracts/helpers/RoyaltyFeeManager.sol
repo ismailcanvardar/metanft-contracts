@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "../lib/RoyaltyFeeManagerStructs.sol";
 
 contract RoyaltyFeeManager {
-    uint8 private constant _BASE_DIVIDER = 100;
-    uint8 private _MAXIMUM_FEE_PERCENTAGE;
+    uint8 public constant BASE_DIVIDER = 100;
+    uint8 public maximumFeePercentage;
     mapping(address => mapping(uint256 => RoyaltyFeeManagerStructs.RoyaltyFeeConfig))
         private configs;
     mapping(address => mapping(uint256 => address)) private creators;
@@ -20,7 +20,7 @@ contract RoyaltyFeeManager {
     );
 
     constructor(uint8 _maximumPercentage) {
-        _MAXIMUM_FEE_PERCENTAGE = _maximumPercentage;
+        maximumFeePercentage = _maximumPercentage;
     }
 
     modifier onlyAssetOwner(address _originAddress, uint256 _tokenId) {
@@ -32,29 +32,6 @@ contract RoyaltyFeeManager {
     modifier onlyCreator(address _originAddress, uint256 _tokenId) {
         require(creators[_originAddress][_tokenId] == msg.sender);
         _;
-    }
-
-    function getCreator(
-        address originAddress,
-        uint256 tokenId
-    ) external view returns (address) {
-        return creators[originAddress][tokenId];
-    }
-
-    function hasRoyaltyFee(
-        address originAddress,
-        uint256 tokenId
-    ) public view returns (bool) {
-        RoyaltyFeeManagerStructs.RoyaltyFeeConfig
-            memory royaltyFeeConfig = configs[originAddress][tokenId];
-
-        uint feePercentage = royaltyFeeConfig.feePercentage;
-
-        if (feePercentage == 0) {
-            return false;
-        }
-
-        return true;
     }
 
     function getRoyaltyFeeConfig(
@@ -83,7 +60,7 @@ contract RoyaltyFeeManager {
         bool isOwnershipTransferable
     ) external onlyCreator(originAddress, tokenId) returns (bool) {
         require(
-            newFeePercentage <= _MAXIMUM_FEE_PERCENTAGE,
+            newFeePercentage <= maximumFeePercentage,
             "registerRoyaltyFeeConfig: Fee percentage must be lower than or equal to maximum percentage."
         );
         RoyaltyFeeManagerStructs.RoyaltyFeeConfig storage config = configs[
@@ -103,10 +80,26 @@ contract RoyaltyFeeManager {
         return false;
     }
 
+    function hasRoyaltyFee(
+        address originAddress,
+        uint256 tokenId
+    ) public view returns (bool) {
+        RoyaltyFeeManagerStructs.RoyaltyFeeConfig
+            memory royaltyFeeConfig = configs[originAddress][tokenId];
+
+        uint feePercentage = royaltyFeeConfig.feePercentage;
+
+        if (feePercentage == 0) {
+            return false;
+        }
+
+        return true;
+    }
+
     function calculateRoyaltyFee(
         uint256 amount,
         uint256 feePercentage
-    ) external pure returns (uint256) {
-        return (amount * feePercentage) / _BASE_DIVIDER;
+    ) public pure returns (uint256) {
+        return (amount * feePercentage) / BASE_DIVIDER;
     }
 }

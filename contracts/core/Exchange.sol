@@ -20,11 +20,11 @@ import "../lib/RoyaltyFeeManagerStructs.sol";
 import "../utils/SignatureVerifier.sol";
 
 contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
-    address private _FEE_COLLECTOR;
-    IAffiliate private _AFFILIATE;
-    IExchangeConfig private _EXCHANGE_CONFIG;
-    IRoyaltyFeeManager private _ROYALTY_FEE_MANAGER;
-    address public WETH;
+    address public feeCollector;
+    IAffiliate public affiliate;
+    IExchangeConfig public exchangeConfig;
+    IRoyaltyFeeManager public royaltyFeeManager;
+    address public immutable weth;
 
     event FinalizeAuction(
         address originAddress,
@@ -54,11 +54,11 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
     ) {
         _transferOwnership(_msgSender());
 
-        _FEE_COLLECTOR = _feeCollector;
-        _AFFILIATE = _affiliate;
-        _EXCHANGE_CONFIG = _exchangeConfig;
-        _ROYALTY_FEE_MANAGER = _royaltyFeeManager;
-        WETH = _weth;
+        feeCollector = _feeCollector;
+        affiliate = _affiliate;
+        exchangeConfig = _exchangeConfig;
+        royaltyFeeManager = _royaltyFeeManager;
+        weth = _weth;
     }
 
     modifier onlySeller(address _itemOwner) {
@@ -75,44 +75,28 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
         _;
     }
 
-    function getFeeCollector() public view returns (address) {
-        return _FEE_COLLECTOR;
-    }
-
-    function getAffiliate() public view returns (IAffiliate) {
-        return _AFFILIATE;
-    }
-
-    function getExchangeConfig() public view returns (IExchangeConfig) {
-        return _EXCHANGE_CONFIG;
-    }
-
-    function getRoyaltyFeeManager() public view returns (IRoyaltyFeeManager) {
-        return _ROYALTY_FEE_MANAGER;
-    }
-
-    function setFeeCollector(address newAddress) public onlyOwner {
-        _FEE_COLLECTOR = newAddress;
+    function setFeeCollector(address newAddress) external onlyOwner {
+        feeCollector = newAddress;
 
         emit SetFeeCollector(newAddress);
     }
 
-    function setAffiliate(IAffiliate newAddress) public onlyOwner {
-        _AFFILIATE = newAddress;
+    function setAffiliate(IAffiliate newAddress) external onlyOwner {
+        affiliate = newAddress;
 
         emit SetAffiliate(newAddress);
     }
 
-    function setExchangeConfig(IExchangeConfig newAddress) public onlyOwner {
-        _EXCHANGE_CONFIG = newAddress;
+    function setExchangeConfig(IExchangeConfig newAddress) external onlyOwner {
+        exchangeConfig = newAddress;
 
         emit SetExchangeConfig(newAddress);
     }
 
     function setRoyaltyFeeManager(
         IRoyaltyFeeManager newAddress
-    ) public onlyOwner {
-        _ROYALTY_FEE_MANAGER = newAddress;
+    ) external onlyOwner {
+        royaltyFeeManager = newAddress;
 
         emit SetRoyaltyFeeManager(newAddress);
     }
@@ -121,7 +105,7 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
         ExchangeStructs.Listing memory listing,
         bytes memory sig,
         uint256 nonce
-    ) public payable nonReentrant directBuyCompatible(listing.listingType) {
+    ) external payable nonReentrant directBuyCompatible(listing.listingType) {
         _verifyListing(sig, listing, nonce);
 
         uint256 buyAmount = listing.listingType ==
@@ -179,7 +163,7 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
         ExchangeStructs.Bid memory bid,
         bytes[2] memory sigs,
         uint256[2] memory nonces
-    ) public nonReentrant onlySeller(listing.seller) {
+    ) external nonReentrant onlySeller(listing.seller) {
         _verifyListing(sigs[0], listing, nonces[0]);
         _verifyBid(sigs[1], bid, nonces[1]);
 
@@ -222,7 +206,7 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
                 bid.bidder,
                 listing.seller,
                 bid.bidder,
-                WETH,
+                weth,
                 false
             );
         } else {
@@ -267,16 +251,16 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
 
         fees[0] = _amount;
 
-        uint256 exchangeFeeAmount = _EXCHANGE_CONFIG.calculateExchangeFee(
+        uint256 exchangeFeeAmount = exchangeConfig.calculateExchangeFee(
             _amount
         );
         fees[1] = exchangeFeeAmount;
         uint256 amountAfterExchangeFee = _amount + exchangeFeeAmount;
         fees[2] = amountAfterExchangeFee;
 
-        address affiliateAddress = _AFFILIATE.getAffiliateAddress(_invited);
+        address affiliateAddress = affiliate.getAffiliateAddress(_invited);
         if (affiliateAddress != address(0)) {
-            (uint256 invitorFeeAmount, uint256 invitedFeeAmount) = _AFFILIATE
+            (uint256 invitorFeeAmount, uint256 invitedFeeAmount) = affiliate
                 .calculateAffiliateFees(exchangeFeeAmount);
             fees[3] = invitorFeeAmount;
             fees[4] = invitedFeeAmount;
@@ -289,12 +273,12 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
             addresses[0] = affiliateAddress;
         }
         RoyaltyFeeManagerStructs.RoyaltyFeeConfig
-            memory royaltyFeeConfig = _ROYALTY_FEE_MANAGER.getRoyaltyFeeConfig(
+            memory royaltyFeeConfig = royaltyFeeManager.getRoyaltyFeeConfig(
                 _originAddress,
                 _tokenId
             );
         if (royaltyFeeConfig.creator != address(0)) {
-            uint256 royaltyFeeAmount = _ROYALTY_FEE_MANAGER.calculateRoyaltyFee(
+            uint256 royaltyFeeAmount = royaltyFeeManager.calculateRoyaltyFee(
                 _amount,
                 royaltyFeeConfig.feePercentage
             );
@@ -318,7 +302,7 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
         address _bidder,
         address _tokenAddress,
         bool _isETHTransfer
-    ) internal {
+    ) private {
         (uint256[6] memory fees, address[2] memory addresses) = _getFees(
             _originAddress,
             _tokenId,
@@ -345,7 +329,7 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
 
             Payment.safeSendETH(
                 address(this),
-                _FEE_COLLECTOR,
+                feeCollector,
                 fees[1] - fees[4] - fees[3]
             );
         } else {
@@ -395,7 +379,7 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
             Payment.safeSendToken(
                 _tokenAddress,
                 _bidder,
-                _FEE_COLLECTOR,
+                feeCollector,
                 fees[1] - fees[4] - fees[3]
             );
         }

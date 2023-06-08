@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -6,9 +6,9 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 
 contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
-    address private _ORIGIN_ADDRESS;
-    uint256 private _TOKEN_ID;
-    address private _CURATOR;
+    address public originAddress;
+    uint256 public tokenId;
+    address public curator;
     uint256 public currentPrice;
     uint256 public priceRulePercentage = 5;
     mapping(address => uint256) public listPrices;
@@ -46,55 +46,44 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
     event CancelListing(address indexed account, uint256 amount, uint256 price);
 
     modifier onlyCurator() {
-        require(_msgSender() == _CURATOR, "onlyCurator: Lack of permission.");
+        require(_msgSender() == curator, "onlyCurator: Lack of permission.");
         _;
     }
 
     function initialize(
-        address curator,
-        address originAddress,
-        uint256 tokenId,
+        address _curator,
+        address _originAddress,
+        uint256 _tokenId,
         uint256 totalSupply,
         string memory name,
         string memory symbol
     ) external initializer {
         __ERC20_init(name, symbol);
         __ERC721Holder_init();
-        _ORIGIN_ADDRESS = originAddress;
-        _TOKEN_ID = tokenId;
-        _CURATOR = curator;
+        originAddress = _originAddress;
+        tokenId = _tokenId;
+        curator = _curator;
 
         _mint(curator, totalSupply);
     }
 
-    function getSaleInfo() public view returns (SaleStatus, uint256[5] memory) {
-        return (
-            saleStatus,
-            [salePrice, saleLength, startBlock, saleAmount, soldAmount]
-        );
-    }
-
     function setPriceRulePercentage(
         uint256 newPriceRulePercentage
-    ) public onlyCurator {
+    ) external onlyCurator {
         priceRulePercentage = newPriceRulePercentage;
-    }
-
-    function getItemInfo() public view returns (address, uint256, address) {
-        return (_ORIGIN_ADDRESS, _TOKEN_ID, _CURATOR);
     }
 
     function startSale(
         uint256 price,
         uint256 length,
         uint256 amount
-    ) public onlyCurator {
+    ) external onlyCurator {
         require(
             saleStatus == SaleStatus.INACTIVE,
             "startSale: Sale was started, already."
         );
         require(
-            allowance(_CURATOR, address(this)) >= amount,
+            allowance(curator, address(this)) >= amount,
             "startSale: Has to approve tokens first!"
         );
 
@@ -108,7 +97,7 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
         emit StartSale(_msgSender(), price, length);
     }
 
-    function buyDivisibleFromSale(uint256 amount) public payable {
+    function buyDivisibleFromSale(uint256 amount) external payable {
         require(
             saleStatus == SaleStatus.ACTIVE,
             "buyDivisibleFromSale: Sale is not active."
@@ -128,7 +117,7 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
         (bool sent, ) = address(this).call(
             abi.encodeWithSignature(
                 "transferFrom(address,address,uint256)",
-                _CURATOR,
+                curator,
                 _msgSender(),
                 amount
             )
@@ -140,7 +129,7 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
         emit BuyDivisibleFromSale(_msgSender(), amount);
     }
 
-    function endSale() public onlyCurator {
+    function endSale() external onlyCurator {
         require(
             saleStatus == SaleStatus.ACTIVE,
             "endSale: Sale is not active."
@@ -155,7 +144,7 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
         emit EndSale(SaleStatus.DONE);
     }
 
-    function cashOut() public {
+    function cashOut() external {
         require(
             saleStatus == SaleStatus.DONE,
             "cashOut: Cannot make this action before sale is ended."
@@ -176,7 +165,7 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
         emit CashOut(_msgSender(), balanceOfCaller);
     }
 
-    function list(uint256 amount, uint256 price) public {
+    function list(uint256 amount, uint256 price) external {
         require(
             saleStatus == SaleStatus.DONE,
             "list: Sale has to be finished in order to list tokens."
@@ -200,7 +189,7 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
         emit List(_msgSender(), amount, price);
     }
 
-    function cancelListing() public {
+    function cancelListing() external {
         require(
             listPrices[_msgSender()] > 0 && listAmount[_msgSender()] > 0,
             "cancelListing: Listing needed to make this action."
@@ -216,7 +205,7 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
         );
     }
 
-    function directBuy(address from, uint256 amount) public payable {
+    function directBuy(address from, uint256 amount) external payable {
         require(
             listAmount[from] >= amount,
             "directBuy: Buy amount exceeds listing amount!"
@@ -250,13 +239,13 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
             "reclaim: Must own total supply of tokens."
         );
 
-        IERC721(_ORIGIN_ADDRESS).transferFrom(
+        IERC721(originAddress).transferFrom(
             address(this),
             _msgSender(),
-            _TOKEN_ID
+            tokenId
         );
 
-        emit Reclaim(_msgSender(), _ORIGIN_ADDRESS, _TOKEN_ID);
+        emit Reclaim(_msgSender(), originAddress, tokenId);
     }
 
     function _calculatePriceRule() internal view returns (uint256, uint256) {

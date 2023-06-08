@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
@@ -11,8 +11,8 @@ import "../interfaces/IFractionalProxyManager.sol";
 contract FractionalProxyManager is Ownable2Step, IFractionalProxyManager {
     uint256 public fractionalCount;
 
-    mapping(uint256 => address) private _fractionals;
-    mapping(address => bool) private _fractionalWhitelist;
+    mapping(uint256 => address) public fractionals;
+    mapping(address => bool) public fractionalWhitelist;
 
     address public immutable logic;
 
@@ -30,22 +30,18 @@ contract FractionalProxyManager is Ownable2Step, IFractionalProxyManager {
         logic = address(new Fractional());
     }
 
-    function getFractional(uint256 fractionalId) public view returns (address) {
-        return _fractionals[fractionalId];
-    }
-
     function addToWhitelist(
         address proxyAddress
-    ) public onlyOwner returns (bool) {
-        _fractionalWhitelist[proxyAddress] = true;
+    ) external onlyOwner returns (bool) {
+        fractionalWhitelist[proxyAddress] = true;
 
         return true;
     }
 
     function removeFromWhitelist(
         address proxyAddress
-    ) public onlyOwner returns (bool) {
-        _fractionalWhitelist[proxyAddress] = false;
+    ) external onlyOwner returns (bool) {
+        fractionalWhitelist[proxyAddress] = false;
 
         return true;
     }
@@ -85,10 +81,10 @@ contract FractionalProxyManager is Ownable2Step, IFractionalProxyManager {
             tokenId
         );
 
-        _fractionals[fractionalCount] = fractionalProxy;
+        fractionals[fractionalCount] = fractionalProxy;
         fractionalCount++;
 
-        _fractionalWhitelist[fractionalProxy] = true;
+        fractionalWhitelist[fractionalProxy] = true;
 
         return fractionalCount - 1;
     }

@@ -1,12 +1,12 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 contract Affiliate is Ownable2Step {
-    uint8 private _AFFILIATE_INVITOR_FEE_PERCENTAGE = 20;
-    uint8 private _AFFILIATE_INVITED_FEE_PERCENTAGE = 10;
-    uint8 private constant _BASE_DIVIDER = 100;
+    uint8 public invitorFeePercentage;
+    uint8 public invitedFeePercentage;
+    uint8 public constant BASE_DIVIDER = 100;
     mapping(address => address) private affiliates;
 
     event SetAffiliateFeePercentage(uint8 newInvitorFee, uint8 newInvitedFee);
@@ -14,33 +14,22 @@ contract Affiliate is Ownable2Step {
 
     constructor() {
         _transferOwnership(_msgSender());
-    }
 
-    function getAffiliateAddress(
-        address invited
-    ) external view returns (address) {
-        return affiliates[invited];
-    }
-
-    function getAffiliateFees()
-        external
-        view
-        returns (uint8 invitorFeePercentage, uint8 invitedFeePercentage)
-    {
-        return (
-            _AFFILIATE_INVITOR_FEE_PERCENTAGE,
-            _AFFILIATE_INVITED_FEE_PERCENTAGE
-        );
+        invitorFeePercentage = 20;
+        invitedFeePercentage = 10;
     }
 
     function setAffiliateFeePercentages(
-        uint8 newInvitorFee,
-        uint8 newInvitedFee
+        uint8 newInvitorFeePercentage,
+        uint8 newInvitedFeePercentage
     ) external onlyOwner returns (bool) {
-        _AFFILIATE_INVITOR_FEE_PERCENTAGE = newInvitorFee;
-        _AFFILIATE_INVITED_FEE_PERCENTAGE = newInvitedFee;
+        invitorFeePercentage = newInvitorFeePercentage;
+        invitedFeePercentage = newInvitedFeePercentage;
 
-        emit SetAffiliateFeePercentage(newInvitorFee, newInvitedFee);
+        emit SetAffiliateFeePercentage(
+            newInvitorFeePercentage,
+            newInvitedFeePercentage
+        );
 
         return true;
     }
@@ -75,10 +64,14 @@ contract Affiliate is Ownable2Step {
         returns (uint256 invitorFeeAmount, uint256 invitedFeeAmount)
     {
         return (
-            (exchangeFeeAmount * _AFFILIATE_INVITOR_FEE_PERCENTAGE) /
-                _BASE_DIVIDER,
-            (exchangeFeeAmount * _AFFILIATE_INVITED_FEE_PERCENTAGE) /
-                _BASE_DIVIDER
+            (exchangeFeeAmount * invitorFeePercentage) / BASE_DIVIDER,
+            (exchangeFeeAmount * invitedFeePercentage) / BASE_DIVIDER
         );
+    }
+
+    function getAffiliateAddress(
+        address invited
+    ) public view returns (address) {
+        return affiliates[invited];
     }
 }

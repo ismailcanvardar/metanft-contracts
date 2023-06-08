@@ -11,8 +11,8 @@ import "../interfaces/IDivisibleProxyManager.sol";
 contract DivisibleProxyManager is Ownable2Step, IDivisibleProxyManager {
     uint256 public divisibleCount;
 
-    mapping(uint256 => address) private _divisibles;
-    mapping(address => bool) private _divisibleWhitelist;
+    mapping(uint256 => address) public divisibles;
+    mapping(address => bool) public divisibleWhitelist;
 
     address public immutable logic;
 
@@ -30,22 +30,18 @@ contract DivisibleProxyManager is Ownable2Step, IDivisibleProxyManager {
         logic = address(new Divisible());
     }
 
-    function getDivisible(uint256 divisibleId) public view returns (address) {
-        return _divisibles[divisibleId];
-    }
-
     function addToWhitelist(
         address proxyAddress
-    ) public onlyOwner returns (bool) {
-        _divisibleWhitelist[proxyAddress] = true;
+    ) external onlyOwner returns (bool) {
+        divisibleWhitelist[proxyAddress] = true;
 
         return true;
     }
 
     function removeFromWhitelist(
         address proxyAddress
-    ) public onlyOwner returns (bool) {
-        _divisibleWhitelist[proxyAddress] = false;
+    ) external onlyOwner returns (bool) {
+        divisibleWhitelist[proxyAddress] = false;
 
         return true;
     }
@@ -85,10 +81,10 @@ contract DivisibleProxyManager is Ownable2Step, IDivisibleProxyManager {
             tokenId
         );
 
-        _divisibles[divisibleCount] = divisibleProxy;
+        divisibles[divisibleCount] = divisibleProxy;
         divisibleCount++;
 
-        _divisibleWhitelist[divisibleProxy] = true;
+        divisibleWhitelist[divisibleProxy] = true;
 
         return divisibleCount - 1;
     }

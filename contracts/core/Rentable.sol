@@ -8,8 +8,11 @@ import "../helpers/Payment.sol";
 import "../interfaces/IRentableConfig.sol";
 
 contract Rentable is Ownable2Step, Payment {
-    address private _FEE_COLLECTOR;
-    IRentableConfig private _RENTABLE_CONFIG;
+    address public feeCollector;
+    IRentableConfig public rentableConfig;
+    mapping(address => mapping(uint256 => bool)) public activeRents;
+    mapping(address => mapping(uint256 => Lease)) public leases;
+    mapping(address => mapping(uint256 => address)) public tennants;
 
     struct Asset {
         address originAddress;
@@ -27,10 +30,6 @@ contract Rentable is Ownable2Step, Payment {
         uint256 fee;
     }
 
-    mapping(address => mapping(uint256 => bool)) internal _activeRents;
-    mapping(address => mapping(uint256 => Lease)) internal _leases;
-    mapping(address => mapping(uint256 => address)) internal _tennants;
-
     event PutAssetOnRent(
         address originAddress,
         uint256 tokenId,
@@ -47,13 +46,13 @@ contract Rentable is Ownable2Step, Payment {
     constructor(address _feeCollector, IRentableConfig _rentableConfig) {
         _transferOwnership(_msgSender());
 
-        _FEE_COLLECTOR = _feeCollector;
-        _RENTABLE_CONFIG = _rentableConfig;
+        feeCollector = _feeCollector;
+        rentableConfig = _rentableConfig;
     }
 
     modifier isRentable(address _originAddress, uint256 _tokenId) {
         require(
-            !_activeRents[_originAddress][_tokenId],
+            !activeRents[_originAddress][_tokenId],
             "isRentable: Item is already rented."
         );
         _;
@@ -61,39 +60,20 @@ contract Rentable is Ownable2Step, Payment {
 
     modifier isAssetOwner(address _originAddress, uint256 _tokenId) {
         require(
-            _leases[_originAddress][_tokenId].asset.owner == _msgSender(),
+            leases[_originAddress][_tokenId].asset.owner == _msgSender(),
             "isAssetOwner: Only asset owner can do this action."
         );
         _;
     }
 
-    function getFeeCollector() public view returns (address) {
-        return _FEE_COLLECTOR;
-    }
-
-    function getRentableConfig() public view returns (IRentableConfig) {
-        return _RENTABLE_CONFIG;
-    }
-
-    function getAssetInfo(
-        address originAddress,
-        uint256 tokenId
-    ) public view returns (bool, Lease memory, address) {
-        return (
-            _activeRents[originAddress][tokenId],
-            _leases[originAddress][tokenId],
-            _tennants[originAddress][tokenId]
-        );
-    }
-
-    function setFeeCollector(address newAddress) public onlyOwner {
-        _FEE_COLLECTOR = newAddress;
+    function setFeeCollector(address newAddress) external onlyOwner {
+        feeCollector = newAddress;
 
         emit SetFeeCollector(newAddress);
     }
 
-    function setRentableConfig(IRentableConfig newAddress) public onlyOwner {
-        _RENTABLE_CONFIG = newAddress;
+    function setRentableConfig(IRentableConfig newAddress) external onlyOwner {
+        rentableConfig = newAddress;
 
         emit SetRentableConfig(newAddress);
     }
@@ -104,7 +84,7 @@ contract Rentable is Ownable2Step, Payment {
         bool hasCollateral,
         uint256 collateralAmount,
         uint256 pricePerDay
-    ) public isRentable(originAddress, tokenId) returns (bool) {
+    ) external isRentable(originAddress, tokenId) returns (bool) {
         IERC721 contractInstance = IERC721(originAddress);
 
         if (contractInstance.ownerOf(tokenId) != address(this)) {
@@ -120,7 +100,7 @@ contract Rentable is Ownable2Step, Payment {
             contractInstance.transferFrom(_msgSender(), address(this), tokenId);
         }
 
-        _leases[originAddress][tokenId] = Lease(
+        leases[originAddress][tokenId] = Lease(
             Asset(originAddress, tokenId, _msgSender()),
             hasCollateral,
             collateralAmount,
@@ -139,8 +119,8 @@ contract Rentable is Ownable2Step, Payment {
         address originAddress,
         uint256 tokenId,
         uint256 rentDurationInDays
-    ) public payable isRentable(originAddress, tokenId) returns (bool) {
-        Lease storage leaseInstance = _leases[originAddress][tokenId];
+    ) external payable isRentable(originAddress, tokenId) returns (bool) {
+        Lease storage leaseInstance = leases[originAddress][tokenId];
 
         require(
             leaseInstance.asset.owner != _msgSender(),
@@ -157,7 +137,7 @@ contract Rentable is Ownable2Step, Payment {
             charge = leaseInstance.pricePerDay * rentDurationInDays;
         }
 
-        (uint256 fee, uint256 chargeAfterFee) = _RENTABLE_CONFIG
+        (uint256 fee, uint256 chargeAfterFee) = rentableConfig
             .getAmountAfterFee(charge, false);
 
         require(chargeAfterFee <= msg.value, "lease: Insufficient funds.");
@@ -170,10 +150,10 @@ contract Rentable is Ownable2Step, Payment {
 
         Payment.safeSendETH(_msgSender(), leaseInstance.asset.owner, charge);
 
-        Payment.safeSendETH(_msgSender(), _FEE_COLLECTOR, fee);
+        Payment.safeSendETH(_msgSender(), feeCollector, fee);
 
-        _activeRents[originAddress][tokenId] = true;
-        _tennants[originAddress][tokenId] = _msgSender();
+        activeRents[originAddress][tokenId] = true;
+        tennants[originAddress][tokenId] = _msgSender();
 
         emit CompleteLease(originAddress, tokenId, rentDurationInDays);
 
@@ -183,8 +163,8 @@ contract Rentable is Ownable2Step, Payment {
     function endLease(
         address originAddress,
         uint256 tokenId
-    ) public payable isAssetOwner(originAddress, tokenId) returns (bool) {
-        Lease storage leaseInstance = _leases[originAddress][tokenId];
+    ) external payable isAssetOwner(originAddress, tokenId) returns (bool) {
+        Lease storage leaseInstance = leases[originAddress][tokenId];
 
         require(
             leaseInstance.expirationDate < block.timestamp,
@@ -197,7 +177,7 @@ contract Rentable is Ownable2Step, Payment {
             refundAmount = leaseInstance.collateralAmount;
         }
 
-        (uint256 fee, ) = _RENTABLE_CONFIG.getAmountAfterFee(
+        (uint256 fee, ) = rentableConfig.getAmountAfterFee(
             leaseInstance.charge,
             true
         );
@@ -212,12 +192,12 @@ contract Rentable is Ownable2Step, Payment {
         if (leaseInstance.hasCollateral) {
             Payment.safeSendETH(
                 _msgSender(),
-                _tennants[originAddress][tokenId],
+                tennants[originAddress][tokenId],
                 leaseInstance.collateralAmount
             );
         }
 
-        Payment.safeSendETH(_msgSender(), _FEE_COLLECTOR, fee);
+        Payment.safeSendETH(_msgSender(), feeCollector, fee);
 
         IERC721 contractInstance = IERC721(originAddress);
         contractInstance.transferFrom(
@@ -226,11 +206,22 @@ contract Rentable is Ownable2Step, Payment {
             tokenId
         );
 
-        delete _leases[originAddress][tokenId];
-        delete _tennants[originAddress][tokenId];
+        delete leases[originAddress][tokenId];
+        delete tennants[originAddress][tokenId];
 
-        _activeRents[originAddress][tokenId] = false;
+        activeRents[originAddress][tokenId] = false;
 
         return true;
+    }
+
+    function getAssetInfo(
+        address originAddress,
+        uint256 tokenId
+    ) public view returns (bool, Lease memory, address) {
+        return (
+            activeRents[originAddress][tokenId],
+            leases[originAddress][tokenId],
+            tennants[originAddress][tokenId]
+        );
     }
 }
