@@ -12,3 +12,5 @@ artifacts
 resources/ganache-test.txt
 tmp
 deployments
+
+/resources
