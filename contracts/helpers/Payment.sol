@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "../interfaces/IPayment.sol";
 
@@ -59,7 +60,9 @@ abstract contract Payment is IPayment {
         require(to != address(0), "safeSendToken: Invalid to address.");
         require(amount > 0, "safeSendToken: Invalid amount");
 
-        return _sendToken(contractAddress, from, to, amount);
+        _sendToken(contractAddress, from, to, amount);
+
+        return true;
     }
 
     /**
@@ -88,18 +91,16 @@ abstract contract Payment is IPayment {
      * @param _from The sender address.
      * @param _to The recipient address.
      * @param _amount The amount of tokens to send.
-     * @return A boolean indicating whether the token transfer was successful.
      */
     function _sendToken(
         address _contractAddress,
         address _from,
         address _to,
         uint256 _amount
-    ) internal returns (bool) {
+    ) internal {
         IERC20 token = IERC20(_contractAddress);
-        bool status = token.transferFrom(_from, _to, _amount);
+        SafeERC20.safeTransferFrom(token, _from, _to, _amount);
 
         emit SendToken(_contractAddress, _from, _to, _amount);
-        return status;
     }
 }
