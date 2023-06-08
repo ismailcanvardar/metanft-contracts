@@ -44,9 +44,18 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
     //event SetSalePrice(uint256 newPrice);
     event BuyDivisibleFromSale(address indexed account, uint256 amount);
     event CashOut(address indexed account, uint256 amount);
-    event StartSale(address indexed curator, uint256 salePrice, uint256 saleLength);
+    event StartSale(
+        address indexed curator,
+        uint256 salePrice,
+        uint256 saleLength
+    );
     event List(address indexed account, uint256 amount, uint256 price);
-    event DirectBuy(address indexed buyer, address indexed from, uint256 amount, uint256 price);
+    event DirectBuy(
+        address indexed buyer,
+        address indexed from,
+        uint256 amount,
+        uint256 price
+    );
     event EndSale(SaleStatus saleStatus);
     event CancelListing(address indexed account, uint256 amount, uint256 price);
 
@@ -56,9 +65,14 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
         _;
     }
 
-    // Hisseli NFT için token üreten ve token'ın bilgilerini sağlayan başlatıcı fonksiyon 
+    // Hisseli NFT için token üreten ve token'ın bilgilerini sağlayan başlatıcı fonksiyon
     function initialize(
-        address curator, address originAddress, uint256 tokenId, uint256 totalSupply, string memory name, string memory symbol
+        address curator,
+        address originAddress,
+        uint256 tokenId,
+        uint256 totalSupply,
+        string memory name,
+        string memory symbol
     ) external initializer {
         // kalıtım yapılan kontratları başlat
         __ERC20_init(name, symbol);
@@ -71,27 +85,42 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
     }
 
     // Satis bilgisini dondurur
-    function getSaleInfo() public view returns(SaleStatus, uint256[5] memory) {
-        return (saleStatus, [salePrice, saleLength, startBlock, saleAmount, soldAmount]);
+    function getSaleInfo() public view returns (SaleStatus, uint256[5] memory) {
+        return (
+            saleStatus,
+            [salePrice, saleLength, startBlock, saleAmount, soldAmount]
+        );
     }
 
     // Min maks listeleme fiyatı kuralını değiştiren fonksiyon, sadece curator bu fonksiyonu çağırabilir
-    function setPriceRulePercentage(uint256 newPriceRulePercentage) public onlyCurator {
+    function setPriceRulePercentage(
+        uint256 newPriceRulePercentage
+    ) public onlyCurator {
         priceRulePercentage = newPriceRulePercentage;
     }
 
     // Kontrata kitli ürünün bilgilerini al
-    function getItemInfo() public view returns(address, uint256, address) {
+    function getItemInfo() public view returns (address, uint256, address) {
         return (_ORIGIN_ADDRESS, _TOKEN_ID, _CURATOR);
     }
 
     // Ön satışı başlatan fonksiyon (bu fonksiyonu sadece NFT'sini hisselendiren yani curator çağırabilir)
     // Satış bilgilerini günceller, bunlar saleStatus: satışın durumu, saleLength: verilen block zamanından ne kadar zaman sonra biteceği
-    // startBlock: fonksiyon çağırıldığındaki başlangıç zamanı, salePrice: satış fiyatı, 
+    // startBlock: fonksiyon çağırıldığındaki başlangıç zamanı, salePrice: satış fiyatı,
     // currentPrice: aktif satış fiyat (bunun kullanılma sebebi ileride hissedar satışlarında aktif fiyatı güncellemek için)
-    function startSale(uint256 price, uint256 length, uint256 amount) onlyCurator public {
-        require(saleStatus == SaleStatus.INACTIVE, "startSale: Sale was started, already.");
-        require(allowance(_CURATOR, address(this)) >= amount, "startSale: Has to approve tokens first!");
+    function startSale(
+        uint256 price,
+        uint256 length,
+        uint256 amount
+    ) public onlyCurator {
+        require(
+            saleStatus == SaleStatus.INACTIVE,
+            "startSale: Sale was started, already."
+        );
+        require(
+            allowance(_CURATOR, address(this)) >= amount,
+            "startSale: Has to approve tokens first!"
+        );
 
         saleStatus = SaleStatus.ACTIVE;
         saleLength = length;
@@ -106,19 +135,35 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
     // Hissedar olmak için kullanılan fonksiyon, amacı önsatıştaki hisseden yolladığı miktar kadar satın almak
     // Bu fonksiyonu kullanabilmek için ön satışın aktif olması gerekmektedir
     function buyDivisibleFromSale(uint256 amount) public payable {
-        require(saleStatus == SaleStatus.ACTIVE, "buyDivisibleFromSale: Sale is not active.");
-        require(block.timestamp < startBlock + saleLength , "buyDivisibleFromSale: Sale is ended.");
-        require(soldAmount <= saleAmount && soldAmount + amount <= saleAmount, "buyDivisibleFromSale: Out of sale amount!");
+        require(
+            saleStatus == SaleStatus.ACTIVE,
+            "buyDivisibleFromSale: Sale is not active."
+        );
+        require(
+            block.timestamp < startBlock + saleLength,
+            "buyDivisibleFromSale: Sale is ended."
+        );
+        require(
+            soldAmount <= saleAmount && soldAmount + amount <= saleAmount,
+            "buyDivisibleFromSale: Out of sale amount!"
+        );
 
         uint256 cost = salePrice * (amount / 10 ** 18);
         require(msg.value >= cost, "buyDivisibleFromSale: Not enough funds.");
 
         // TODO: transferFrom'dan dönen data'ya bak
-        // transferFrom(_CURATOR, msg.sender, amount) a karşılık gelir ancak burada yapılan 
+        // transferFrom(_CURATOR, msg.sender, amount) a karşılık gelir ancak burada yapılan
         // proxy call'un amacı bu işlemin kontrat tarafından yapılmasını sağlamak,
         // çünkü CURATOR satışı başlatmadan önce satmak istediği miktarı kontrata approve ediyor
         // böylece buyDivisibleFromSale fonksiyonunu çağıran kişi tetiklemesi yerine Divisible kontratı tetikliyor
-        (bool sent, ) = address(this).call(abi.encodeWithSignature("transferFrom(address,address,uint256)", _CURATOR, msg.sender, amount));
+        (bool sent, ) = address(this).call(
+            abi.encodeWithSignature(
+                "transferFrom(address,address,uint256)",
+                _CURATOR,
+                msg.sender,
+                amount
+            )
+        );
         require(sent, "buyDivisibleFromSale: Unable to transfer tokens.");
 
         soldAmount += amount;
@@ -129,9 +174,15 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
     // Önsatışı bitirmek için çağırılan fonksiyon.
     // Sadece curator bu fonksiyonu çağırabilir.
     // Bu fonksiyonu çağırmak için önsatışın belirtilen süreyi tamamlaması gerekmektedir.
-    function endSale() onlyCurator public {
-        require(saleStatus == SaleStatus.ACTIVE, "endSale: Sale is not active.");
-        require(block.timestamp > startBlock + saleLength, "endSale: Sale has to be finished to make this action.");
+    function endSale() public onlyCurator {
+        require(
+            saleStatus == SaleStatus.ACTIVE,
+            "endSale: Sale is not active."
+        );
+        require(
+            block.timestamp > startBlock + saleLength,
+            "endSale: Sale has to be finished to make this action."
+        );
 
         saleStatus = SaleStatus.DONE;
 
@@ -141,13 +192,19 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
     // Hissedarın elindeki tüm hisseleri, hisse ilk satış fiyatından elinde çıkarması
     // Bu fonksiyon sadece ön satış fiyatından hissedarın elindeki miktarı yakmaktadır
     function cashOut() public {
-        require(saleStatus == SaleStatus.DONE, "cashOut: Cannot make this action before sale is ended.");
-        
+        require(
+            saleStatus == SaleStatus.DONE,
+            "cashOut: Cannot make this action before sale is ended."
+        );
+
         uint256 balanceOfCaller = balanceOf(msg.sender);
         uint256 calculatedAmount = balanceOfCaller * salePrice;
 
-        require(address(this).balance >= balanceOfCaller, "cashOut: Not enough balance in contract.");
-     
+        require(
+            address(this).balance >= balanceOfCaller,
+            "cashOut: Not enough balance in contract."
+        );
+
         _burn(msg.sender, balanceOfCaller);
         // Kilitli token'i tüm hisselere sahip kişiye yollamak kullanılan metot
         (bool sent, ) = msg.sender.call{value: calculatedAmount}("");
@@ -162,11 +219,20 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
     // Listeleme yapması için bir kullanıcının, daha önceden bir listelemesi bulunmamalıdır
     function list(uint256 amount, uint256 price) public {
         // Ön satış bitti mi kontrol et
-        require(saleStatus == SaleStatus.DONE, "list: Sale has to be finished in order to list tokens.");
+        require(
+            saleStatus == SaleStatus.DONE,
+            "list: Sale has to be finished in order to list tokens."
+        );
         // Listeleyen kişi platforma approve vermiş mi kontrol et
-        require(allowance(msg.sender, address(this)) >= amount, "list: Has to approve tokens first!");       
+        require(
+            allowance(msg.sender, address(this)) >= amount,
+            "list: Has to approve tokens first!"
+        );
         // Daha önceden listelenmiş mi kontrol et
-        require(listPrices[msg.sender] == 0 && listAmount[msg.sender] == 0, "list: Already listed before.");
+        require(
+            listPrices[msg.sender] == 0 && listAmount[msg.sender] == 0,
+            "list: Already listed before."
+        );
 
         // minimum veya maksimum fiyatı belirt (mevcut fiyattan yüzde 5 az veya çok listeleme fiyatı belirtememeli)
         (uint256 min, uint256 max) = _calculatePriceRule();
@@ -180,21 +246,31 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
     }
 
     function cancelListing() public {
-        require(listPrices[msg.sender] > 0 && listAmount[msg.sender] > 0, "cancelListing: Listing needed to make this action.");
+        require(
+            listPrices[msg.sender] > 0 && listAmount[msg.sender] > 0,
+            "cancelListing: Listing needed to make this action."
+        );
 
         listPrices[msg.sender] = 0;
         listAmount[msg.sender] = 0;
 
-        emit CancelListing(msg.sender, listPrices[msg.sender], listAmount[msg.sender]);
+        emit CancelListing(
+            msg.sender,
+            listPrices[msg.sender],
+            listAmount[msg.sender]
+        );
     }
-    
+
     // Direkt satın alma fonksiyonu, ön satışın haricinde bu fonksiyon listelemesi yapılmış hisseleri almak için kullanılabilir,
     // Buradaki esas listeleme miktarından daha fazla alıcının satıcıdan hisse alamamasıdır
     // Kontroller sonucunda alıcının yolladığı ETH'ler satıcıya, satıcının satmak istediği ve alıcının istediği miktar alıcıya aktarılır
     // Bu işlem sonucunda currentPrice yani mevcut hisse fiyatı güncellenmiş olur
     function directBuy(address from, uint256 amount) public payable {
         // alınacak miktar, satışa sunan kişinin sattığı miktardan fazla mı kontrol et
-        require(listAmount[from] >= amount, "directBuy: Buy amount exceeds listing amount!");
+        require(
+            listAmount[from] >= amount,
+            "directBuy: Buy amount exceeds listing amount!"
+        );
 
         // satışa sunulan hissenin fiyatını al
         uint256 individualCost = listPrices[from];
@@ -208,7 +284,14 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
         // Gönderme statüsünü kontrol et
         require(sent, "directBuy: Unable to send!");
         // Hisseleri alıcıya gönder
-        (bool sentVal, ) = address(this).call(abi.encodeWithSignature("transferFrom(address,address,uint256)", from, msg.sender, amount));
+        (bool sentVal, ) = address(this).call(
+            abi.encodeWithSignature(
+                "transferFrom(address,address,uint256)",
+                from,
+                msg.sender,
+                amount
+            )
+        );
         require(sentVal, "directBuy: Unable to transfer tokens.");
 
         // anlık fiyatı güncelle
@@ -217,22 +300,33 @@ contract Divisible is ERC20Upgradeable, ERC721HolderUpgradeable {
         listAmount[from] -= amount;
 
         emit DirectBuy(msg.sender, from, amount, individualCost);
-    }   
+    }
 
     // Kontrata kilitli NFT'yi geri almak için kullanılan fonksiyon (sadece bütünlüğü sağlanan hisse sayısı sağlanırsa gerçekleşebilecek fonksiyon)
     function reclaim() external {
-        require(balanceOf(msg.sender) == totalSupply(), "reclaim: Must own total supply of tokens.");
+        require(
+            balanceOf(msg.sender) == totalSupply(),
+            "reclaim: Must own total supply of tokens."
+        );
 
         // Kilitli token'i tüm hisselere sahip kişiye yollamak kullanılan metot
-        IERC721(_ORIGIN_ADDRESS).transferFrom(address(this), msg.sender, _TOKEN_ID);
+        IERC721(_ORIGIN_ADDRESS).transferFrom(
+            address(this),
+            msg.sender,
+            _TOKEN_ID
+        );
 
         emit Reclaim(msg.sender, _ORIGIN_ADDRESS, _TOKEN_ID);
     }
 
     // Minimum veya maksimum verilebilecek listeleme fiyatını döndürür
-    function _calculatePriceRule() internal view returns(uint256, uint256) {
-        uint256 currentPricePercentage = (currentPrice * priceRulePercentage) / 100;
-        
-        return (currentPrice - currentPricePercentage, currentPrice + currentPricePercentage);
+    function _calculatePriceRule() internal view returns (uint256, uint256) {
+        uint256 currentPricePercentage = (currentPrice * priceRulePercentage) /
+            100;
+
+        return (
+            currentPrice - currentPricePercentage,
+            currentPrice + currentPricePercentage
+        );
     }
 }

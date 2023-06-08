@@ -13,26 +13,37 @@ contract ExchangeConfig is IExchangeConfig, Ownable {
 
     event SetExchangeFeePercentage(uint256 percentage);
 
-    function getExchangeFeePercentage() override external view returns(uint8) {
+    function getExchangeFeePercentage() external view override returns (uint8) {
         return _EXCHANGE_FEE_PERCENTAGE;
     }
 
-    function setExchangeFeePercentage(uint8 _newPercentage) onlyOwner public {
+    function setExchangeFeePercentage(uint8 _newPercentage) public onlyOwner {
         _EXCHANGE_FEE_PERCENTAGE = _newPercentage;
-        
+
         emit SetExchangeFeePercentage(_newPercentage);
     }
 
-    function calculateExchangeFee(uint256 amount) external view returns(uint256) {
+    function calculateExchangeFee(
+        uint256 amount
+    ) external view returns (uint256) {
         return _calculateExchangeFee(amount);
     }
 
-    function getAmountAfterFee(uint256 bidAmount) override external view returns(uint256 feeAmount, uint256 amountAfterFee) {
+    function getAmountAfterFee(
+        uint256 bidAmount
+    )
+        external
+        view
+        override
+        returns (uint256 feeAmount, uint256 amountAfterFee)
+    {
         uint256 calculatedFee = _calculateExchangeFee(bidAmount);
         return (calculatedFee, calculatedFee + bidAmount);
     }
 
-    function _calculateExchangeFee(uint256 _amount) internal view returns(uint256) {
+    function _calculateExchangeFee(
+        uint256 _amount
+    ) internal view returns (uint256) {
         return (_amount * _EXCHANGE_FEE_PERCENTAGE) / _BASE_DIVIDER;
     }
 }

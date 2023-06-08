@@ -12,7 +12,7 @@ contract WETH {
     event Withdrawal(address indexed src, uint wad);
 
     mapping(address => uint) public balanceOf;
-    mapping(address => mapping (address => uint)) public allowance;
+    mapping(address => mapping(address => uint)) public allowance;
 
     receive() external payable {
         deposit();
@@ -44,7 +44,11 @@ contract WETH {
         return transferFrom(msg.sender, dst, wad);
     }
 
-    function transferFrom(address src, address dst, uint wad) public returns (bool) {
+    function transferFrom(
+        address src,
+        address dst,
+        uint wad
+    ) public returns (bool) {
         require(balanceOf[src] >= wad);
 
         if (src != msg.sender && allowance[src][msg.sender] != 0) {

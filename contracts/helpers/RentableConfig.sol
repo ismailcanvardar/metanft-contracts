@@ -21,19 +21,27 @@ contract RentableConfig is Ownable, IRentableConfig {
         _TAKER_FEE_PERCENTAGE = _takerFeePercentage;
     }
 
-    function getFees() override external view returns(uint8[2] memory) {
+    function getFees() external view override returns (uint8[2] memory) {
         return [_MAKER_FEE_PERCENTAGE, _TAKER_FEE_PERCENTAGE];
     }
 
-    function setMakerFeePercentage(uint8 newPercentage) onlyOwner public {
+    function setMakerFeePercentage(uint8 newPercentage) public onlyOwner {
         _MAKER_FEE_PERCENTAGE = newPercentage;
     }
 
-    function setTakerFeePercentage(uint8 newPercentage) onlyOwner public {
+    function setTakerFeePercentage(uint8 newPercentage) public onlyOwner {
         _TAKER_FEE_PERCENTAGE = newPercentage;
     }
 
-    function getAmountAfterFee(uint256 bidAmount, bool isMaker) override external view returns(uint256 feeAmount, uint256 amountAfterFee) {
+    function getAmountAfterFee(
+        uint256 bidAmount,
+        bool isMaker
+    )
+        external
+        view
+        override
+        returns (uint256 feeAmount, uint256 amountAfterFee)
+    {
         uint256 calculatedFee;
 
         if (isMaker) {
@@ -41,11 +49,14 @@ contract RentableConfig is Ownable, IRentableConfig {
         } else {
             calculatedFee = _calculateFee(bidAmount, _TAKER_FEE_PERCENTAGE);
         }
-        
+
         return (calculatedFee, calculatedFee + bidAmount);
     }
 
-    function _calculateFee(uint256 _amount, uint8 _percentage) internal pure returns(uint256) {
+    function _calculateFee(
+        uint256 _amount,
+        uint8 _percentage
+    ) internal pure returns (uint256) {
         return (_amount * _percentage) / _BASE_DIVIDER;
     }
 }
