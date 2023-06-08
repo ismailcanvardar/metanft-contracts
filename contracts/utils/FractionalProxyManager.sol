@@ -8,6 +8,11 @@ import "./InitializedProxy.sol";
 import "./Fractional.sol";
 import "../interfaces/IFractionalProxyManager.sol";
 
+/**
+ * @title FractionalProxyManager
+ * @dev A contract for managing the fractionalization of ERC721 tokens.
+ * The contract allows the curator to fractionalize an ERC721 token into multiple fractional tokens with unique tokenURIs.
+ */
 contract FractionalProxyManager is Ownable2Step, IFractionalProxyManager {
     uint256 public fractionalCount;
 
@@ -30,6 +35,11 @@ contract FractionalProxyManager is Ownable2Step, IFractionalProxyManager {
         logic = address(new Fractional());
     }
 
+    /**
+     * @dev Adds a fractional proxy address to the whitelist.
+     * @param proxyAddress The address of the fractional proxy contract.
+     * @return A boolean indicating whether the addition was successful.
+     */
     function addToWhitelist(
         address proxyAddress
     ) external onlyOwner returns (bool) {
@@ -38,6 +48,11 @@ contract FractionalProxyManager is Ownable2Step, IFractionalProxyManager {
         return true;
     }
 
+    /**
+     * @dev Removes a fractional proxy address from the whitelist.
+     * @param proxyAddress The address of the fractional proxy contract.
+     * @return A boolean indicating whether the removal was successful.
+     */
     function removeFromWhitelist(
         address proxyAddress
     ) external onlyOwner returns (bool) {
@@ -46,6 +61,15 @@ contract FractionalProxyManager is Ownable2Step, IFractionalProxyManager {
         return true;
     }
 
+    /**
+     * @dev Fractionalizes an ERC721 token.
+     * @param originAddress The address of the original ERC721 contract.
+     * @param tokenId The ID of the original ERC721 token.
+     * @param tokenURIs An array of tokenURIs for the fractional tokens.
+     * @param name The name of the fractional token.
+     * @param symbol The symbol of the fractional token.
+     * @return The ID of the fractional token.
+     */
     function fractionalize(
         address originAddress,
         uint256 tokenId,

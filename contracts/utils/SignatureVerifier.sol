@@ -6,6 +6,10 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "../lib/ExchangeEnums.sol";
 import "../lib/ExchangeStructs.sol";
 
+/**
+ * @title SignatureVerifier
+ * @dev Contract for verifying signatures used in the exchange.
+ */
 abstract contract SignatureVerifier {
     using ECDSA for bytes32;
 
@@ -38,14 +42,29 @@ abstract contract SignatureVerifier {
         );
     }
 
+    /**
+     * @dev Check if a signature has been used before.
+     * @param signature The signature to check.
+     * @return bool indicating whether the signature has been used before.
+     */
     function checkSignature(bytes memory signature) public view returns (bool) {
         return usedSignatures[signature];
     }
 
+    /**
+     * @dev Mark a signature as used.
+     * @param signature The signature to mark as used.
+     */
     function _useSignature(bytes memory signature) internal {
         usedSignatures[signature] = true;
     }
 
+    /**
+     * @dev Verify the signature of a listing.
+     * @param _signature The signature to verify.
+     * @param _listing The Listing struct representing the listing.
+     * @param _nonce The nonce associated with the signature.
+     */
     function _verifyListing(
         bytes memory _signature,
         ExchangeStructs.Listing memory _listing,
@@ -82,6 +101,12 @@ abstract contract SignatureVerifier {
         _useSignature(_signature);
     }
 
+    /**
+     * @dev Verify the signature of a bid.
+     * @param _signature The signature to verify.
+     * @param _bid The Bid struct representing the bid.
+     * @param _nonce The nonce associated with the signature.
+     */
     function _verifyBid(
         bytes memory _signature,
         ExchangeStructs.Bid memory _bid,
