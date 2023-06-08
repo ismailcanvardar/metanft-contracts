@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 import "../interfaces/IExchangeConfig.sol";
 
-contract ExchangeConfig is IExchangeConfig, Ownable {
-    // Varsayılanı yüzde 5'lik market komisyonu
+contract ExchangeConfig is IExchangeConfig, Ownable2Step {
     uint8 private _EXCHANGE_FEE_PERCENTAGE = 5;
-    // Yüzdelik hesaplamak için bölen değer
     uint8 private constant _BASE_DIVIDER = 100;
 
     event SetExchangeFeePercentage(uint256 percentage);
+
+    constructor() {
+        _transferOwnership(_msgSender());
+    }
 
     function getExchangeFeePercentage() external view override returns (uint8) {
         return _EXCHANGE_FEE_PERCENTAGE;

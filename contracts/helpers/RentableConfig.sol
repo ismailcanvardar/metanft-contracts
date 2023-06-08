@@ -1,22 +1,21 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 import "../interfaces/IRentableConfig.sol";
 
-contract RentableConfig is Ownable, IRentableConfig {
-    // Satıcı komisyonu
+contract RentableConfig is Ownable2Step, IRentableConfig {
     uint8 private _MAKER_FEE_PERCENTAGE;
-    // Alıcı komisyonu
     uint8 private _TAKER_FEE_PERCENTAGE;
-    // Yüzdelik hesaplamak için bölen değer
     uint8 private constant _BASE_DIVIDER = 100;
 
     event SetMakerFeePercentage(uint256 percentage);
     event SetTakerFeePercentage(uint256 percentage);
 
     constructor(uint8 _makerFeePercentage, uint8 _takerFeePercentage) {
+        _transferOwnership(_msgSender());
+
         _MAKER_FEE_PERCENTAGE = _makerFeePercentage;
         _TAKER_FEE_PERCENTAGE = _takerFeePercentage;
     }

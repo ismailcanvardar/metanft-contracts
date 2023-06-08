@@ -1,14 +1,14 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 
 import "./InitializedProxy.sol";
 import "./Divisible.sol";
 import "../interfaces/IDivisibleProxyManager.sol";
 
-contract DivisibleProxyManager is Ownable, IDivisibleProxyManager {
+contract DivisibleProxyManager is Ownable2Step, IDivisibleProxyManager {
     uint256 public divisibleCount;
 
     mapping(uint256 => address) private _divisibles;
@@ -25,6 +25,8 @@ contract DivisibleProxyManager is Ownable, IDivisibleProxyManager {
     );
 
     constructor() {
+        _transferOwnership(_msgSender());
+
         logic = address(new Divisible());
     }
 
@@ -57,7 +59,7 @@ contract DivisibleProxyManager is Ownable, IDivisibleProxyManager {
     ) external override returns (uint256) {
         bytes memory _initializationCalldata = abi.encodeWithSignature(
             "initialize(address,address,uint256,uint256,string,string)",
-            msg.sender,
+            _msgSender(),
             originAddress,
             tokenId,
             totalSupply,
@@ -70,7 +72,7 @@ contract DivisibleProxyManager is Ownable, IDivisibleProxyManager {
         );
 
         emit Divide(
-            msg.sender,
+            _msgSender(),
             originAddress,
             tokenId,
             divisibleProxy,
@@ -78,12 +80,10 @@ contract DivisibleProxyManager is Ownable, IDivisibleProxyManager {
         );
 
         IERC721(originAddress).safeTransferFrom(
-            msg.sender,
+            _msgSender(),
             divisibleProxy,
             tokenId
         );
-
-        // TODO: Kontratlara kapat
 
         _divisibles[divisibleCount] = divisibleProxy;
         divisibleCount++;

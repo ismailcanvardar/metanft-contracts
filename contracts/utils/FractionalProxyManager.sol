@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 
 import "./InitializedProxy.sol";
 import "./Fractional.sol";
 import "../interfaces/IFractionalProxyManager.sol";
 
-contract FractionalProxyManager is Ownable, IFractionalProxyManager {
+contract FractionalProxyManager is Ownable2Step, IFractionalProxyManager {
     uint256 public fractionalCount;
 
     mapping(uint256 => address) private _fractionals;
@@ -25,6 +25,8 @@ contract FractionalProxyManager is Ownable, IFractionalProxyManager {
     );
 
     constructor() {
+        _transferOwnership(_msgSender());
+
         logic = address(new Fractional());
     }
 
@@ -57,7 +59,7 @@ contract FractionalProxyManager is Ownable, IFractionalProxyManager {
     ) external override returns (uint256) {
         bytes memory _initializationCalldata = abi.encodeWithSignature(
             "initialize(address,address,uint256,string[],string,string)",
-            msg.sender,
+            _msgSender(),
             originAddress,
             tokenId,
             tokenURIs,
@@ -70,7 +72,7 @@ contract FractionalProxyManager is Ownable, IFractionalProxyManager {
         );
 
         emit Fractionalize(
-            msg.sender,
+            _msgSender(),
             originAddress,
             tokenId,
             fractionalProxy,
@@ -78,7 +80,7 @@ contract FractionalProxyManager is Ownable, IFractionalProxyManager {
         );
 
         IERC721(originAddress).safeTransferFrom(
-            msg.sender,
+            _msgSender(),
             fractionalProxy,
             tokenId
         );

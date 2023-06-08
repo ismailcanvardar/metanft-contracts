@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
-contract Affiliate is Ownable {
-    // 20% invitor user percentage - 10% invited user percentage
+contract Affiliate is Ownable2Step {
     uint8 private _AFFILIATE_INVITOR_FEE_PERCENTAGE = 20;
     uint8 private _AFFILIATE_INVITED_FEE_PERCENTAGE = 10;
     uint8 private constant _BASE_DIVIDER = 100;
@@ -12,6 +11,10 @@ contract Affiliate is Ownable {
 
     event SetAffiliateFeePercentage(uint8 newInvitorFee, uint8 newInvitedFee);
     event RegisterAffiliate(address invitor, address invited);
+
+    constructor() {
+        _transferOwnership(_msgSender());
+    }
 
     function getAffiliateAddress(
         address invited
@@ -47,7 +50,7 @@ contract Affiliate is Ownable {
         address invited
     ) external returns (bool) {
         require(
-            invited == msg.sender,
+            invited == _msgSender(),
             "registerAffiliate: Must register with your own address."
         );
 

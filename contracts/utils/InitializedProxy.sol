@@ -6,11 +6,9 @@ contract InitializedProxy {
 
     constructor(address _logic, bytes memory _initializationCalldata) {
         logic = _logic;
-        // Initialize metodunu çalıştırmak için delegatecall yap
         (bool _ok, bytes memory returnData) = _logic.delegatecall(
             _initializationCalldata
         );
-        // Delegatecall başarılı mı kontrol et
         require(_ok, string(returnData));
     }
 

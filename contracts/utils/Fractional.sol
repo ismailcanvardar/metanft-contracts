@@ -9,18 +9,13 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgra
 contract Fractional is ERC721URIStorageUpgradeable, ERC721HolderUpgradeable {
     using Counters for Counters.Counter;
     Counters.Counter private _fractionIds;
-    // kontrata kitlenen NFT'nin adresi
     address private _ORIGIN_ADDRESS;
-    // kontrata kitlenen NFT'nin id si
     uint256 private _TOKEN_ID;
-    // NFT'sini parçalayan, NFT oluşturucu adresi
     address private _CURATOR;
-    // Maksimum basılacak NFT limiti
     uint256 LENGTH_LIMIT = 100;
 
     event Reclaim(address newOwner, address originAddress, uint256 tokenId);
 
-    // Hisseli NFT için token üreten ve token'ın bilgilerini sağlayan başlatıcı fonksiyon
     function initialize(
         address curator,
         address originAddress,
@@ -37,13 +32,11 @@ contract Fractional is ERC721URIStorageUpgradeable, ERC721HolderUpgradeable {
 
         uint256 tokenLength = tokenURIs.length;
 
-        // TODO: Token limitini kontrol et
         require(
             tokenLength < LENGTH_LIMIT,
             "initialize: Maximum length exceeded!"
         );
 
-        // Kontrat oluşutucu adresin istediği miktarda token üret
         for (uint256 i = 0; i < tokenLength; ) {
             uint256 newFractionId = _fractionIds.current();
             _mint(curator, newFractionId);
@@ -56,20 +49,18 @@ contract Fractional is ERC721URIStorageUpgradeable, ERC721HolderUpgradeable {
         }
     }
 
-    // Kontrata kilitli NFT'yi geri almak için kullanılan fonksiyon (sadece bütünlüğü sağlanan parça sayısı sağlanırsa gerçekleşebilecek fonksiyon)
     function reclaim() external {
         require(
-            balanceOf(msg.sender) == _fractionIds.current(),
+            balanceOf(_msgSender()) == _fractionIds.current(),
             "reclaim: Must own total supply of tokens."
         );
 
-        // Kilitli token'i tüm hisselere sahip kişiye yollamak kullanılan metot
         IERC721(_ORIGIN_ADDRESS).transferFrom(
             address(this),
-            msg.sender,
+            _msgSender(),
             _TOKEN_ID
         );
 
-        emit Reclaim(msg.sender, _ORIGIN_ADDRESS, _TOKEN_ID);
+        emit Reclaim(_msgSender(), _ORIGIN_ADDRESS, _TOKEN_ID);
     }
 }

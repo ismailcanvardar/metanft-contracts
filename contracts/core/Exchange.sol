@@ -1,10 +1,10 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 import "../interfaces/IAffiliate.sol";
 import "../interfaces/IExchangeConfig.sol";
@@ -19,9 +19,7 @@ import "../lib/RoyaltyFeeManagerStructs.sol";
 
 import "../utils/SignatureVerifier.sol";
 
-/// @author Metatime
-/// @title Exchange
-contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable {
+contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
     address private _FEE_COLLECTOR;
     IAffiliate private _AFFILIATE;
     IExchangeConfig private _EXCHANGE_CONFIG;
@@ -54,6 +52,8 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable {
         IRoyaltyFeeManager _royaltyFeeManager,
         address _weth
     ) {
+        _transferOwnership(_msgSender());
+
         _FEE_COLLECTOR = _feeCollector;
         _AFFILIATE = _affiliate;
         _EXCHANGE_CONFIG = _exchangeConfig;
@@ -61,13 +61,11 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable {
         WETH = _weth;
     }
 
-    // Kullanıcının gerçekten ürünün sahibi olup olmadığını kontrol et
     modifier onlySeller(address _itemOwner) {
-        require(msg.sender == _itemOwner);
+        require(_msgSender() == _itemOwner);
         _;
     }
 
-    // Direct buy için kullanılabilir listeleme tiplerine bakar
     modifier directBuyCompatible(ExchangeEnums.ListingType _listingType) {
         require(
             _listingType == ExchangeEnums.ListingType.DIRECT_SALE ||
@@ -77,48 +75,40 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable {
         _;
     }
 
-    // FeeCollector adresini getirir
     function getFeeCollector() public view returns (address) {
         return _FEE_COLLECTOR;
     }
 
-    // Affiliate adresini getirir
     function getAffiliate() public view returns (IAffiliate) {
         return _AFFILIATE;
     }
 
-    // ExchangeConfig kontrat adresini döndürür
     function getExchangeConfig() public view returns (IExchangeConfig) {
         return _EXCHANGE_CONFIG;
     }
 
-    // RoyaltyFeeManager adresini getirir
     function getRoyaltyFeeManager() public view returns (IRoyaltyFeeManager) {
         return _ROYALTY_FEE_MANAGER;
     }
 
-    // FeeCollector adresini değiştirir
     function setFeeCollector(address newAddress) public onlyOwner {
         _FEE_COLLECTOR = newAddress;
 
         emit SetFeeCollector(newAddress);
     }
 
-    // Affiliate adresini değiştirir
     function setAffiliate(IAffiliate newAddress) public onlyOwner {
         _AFFILIATE = newAddress;
 
         emit SetAffiliate(newAddress);
     }
 
-    // ExchangeConfig adresini değiştirir
     function setExchangeConfig(IExchangeConfig newAddress) public onlyOwner {
         _EXCHANGE_CONFIG = newAddress;
 
         emit SetExchangeConfig(newAddress);
     }
 
-    // RoyaltyFeeManager adresini değiştirir
     function setRoyaltyFeeManager(
         IRoyaltyFeeManager newAddress
     ) public onlyOwner {
@@ -127,13 +117,11 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable {
         emit SetRoyaltyFeeManager(newAddress);
     }
 
-    // Dutch auction veya direkt listeleme tiplerinde kullanılabilen fonksiyon
     function directBuy(
         ExchangeStructs.Listing memory listing,
         bytes memory sig,
         uint256 nonce
     ) public payable nonReentrant directBuyCompatible(listing.listingType) {
-        // Listelemeyi doğrula
         _verifyListing(sig, listing, nonce);
 
         uint256 buyAmount = listing.listingType ==
@@ -141,16 +129,14 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable {
             ? listing.softCap
             : listing.hardCap;
 
-        // Listeleme birimini kontrol et
-        // ERC20 ile listelendiyse, approve miktarını market komisyonu + gönderilen miktardan büyük olduğunu kontrol et
         if (listing.isERC20) {
             _payout(
                 listing.originAddress,
                 listing.tokenId,
                 buyAmount,
-                msg.sender,
+                _msgSender(),
                 listing.seller,
-                msg.sender,
+                _msgSender(),
                 listing.erc20TokenAddress,
                 false
             );
@@ -161,23 +147,21 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable {
                 buyAmount,
                 address(this),
                 listing.seller,
-                msg.sender,
+                _msgSender(),
                 address(0),
                 true
             );
         }
 
-        // Satıcının satmak istediği ürün sahipliğini devrettiğini kontrol et
         IERC721 erc721Instance = IERC721(listing.originAddress);
         require(
             erc721Instance.getApproved(listing.tokenId) == address(this),
             "directBuy: Approval needed for this action!"
         );
 
-        // Ürünü satıcıya gönder
         erc721Instance.transferFrom(
             listing.seller,
-            msg.sender,
+            _msgSender(),
             listing.tokenId
         );
 
@@ -185,49 +169,41 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable {
             listing.originAddress,
             listing.tokenId,
             listing.seller,
-            msg.sender,
+            _msgSender(),
             true
         );
     }
 
-    // TODO: Kontrolleri fonksiyon veya modifier olarak parçala
     function finalizeAuction(
         ExchangeStructs.Listing memory listing,
         ExchangeStructs.Bid memory bid,
         bytes[2] memory sigs,
         uint256[2] memory nonces
     ) public nonReentrant onlySeller(listing.seller) {
-        // Satıcının gerçek satıcı olduğunu kontrol et (✓)
         _verifyListing(sigs[0], listing, nonces[0]);
         _verifyBid(sigs[1], bid, nonces[1]);
 
-        // Satıcının satılan ürüne sahipliğini kontrol et
         IERC721 erc721Instance = IERC721(listing.originAddress);
         require(
-            erc721Instance.ownerOf(listing.tokenId) == msg.sender,
+            erc721Instance.ownerOf(listing.tokenId) == _msgSender(),
             "finalizeAuction: Must be owner of the token!"
         );
 
-        // TODO: Test edilmesi gerekiyor
-        // Satıcının satmak istediği ürün sahipliğini devrettiğini kontrol et
         require(
             erc721Instance.getApproved(listing.tokenId) == address(this),
             "finalizeAuction: Approval needed for this action!"
         );
 
-        // Bid amount must be bigger than soft cap
         require(
             bid.bidAmount > listing.softCap,
             "finalizeAuction: Bid amount must be bigger than softCap!"
         );
 
-        // Listelemenin aktif olduğunu kontrol et
         require(
             block.timestamp > listing.startTimestamp,
             "finalizeAuction: Auction is not started yet!"
         );
 
-        // English ve dutch auction için listelemenin bittiğini kontrol et
         if (
             listing.listingType == ExchangeEnums.ListingType.ENGLISH_AUCTION ||
             listing.listingType == ExchangeEnums.ListingType.DUTCH_AUCTION
@@ -277,16 +253,6 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable {
         );
     }
 
-    // Fees:
-    // uint256 amount,
-    // uint256 exchangeFeeAmount,
-    // uint256 amountAfterExchangeFee,
-    // uint256 invitorFeeAmount,
-    // uint256 invitedFeeAmount,
-    // uint256 royaltyFeeAmount,
-    // Addresses:
-    // address affiliateAddress,
-    // address royaltyFeeConfigCreator,
     function _getFees(
         address _originAddress,
         uint256 _tokenId,
@@ -308,7 +274,6 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable {
         uint256 amountAfterExchangeFee = _amount + exchangeFeeAmount;
         fees[2] = amountAfterExchangeFee;
 
-        // Affiliate kontrolu yap
         address affiliateAddress = _AFFILIATE.getAffiliateAddress(_invited);
         if (affiliateAddress != address(0)) {
             (uint256 invitorFeeAmount, uint256 invitedFeeAmount) = _AFFILIATE
@@ -323,7 +288,6 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable {
             fees[4] = invitedFeeAmount;
             addresses[0] = affiliateAddress;
         }
-        // RoyaltyFee kontrolu yap
         RoyaltyFeeManagerStructs.RoyaltyFeeConfig
             memory royaltyFeeConfig = _ROYALTY_FEE_MANAGER.getRoyaltyFeeConfig(
                 _originAddress,
@@ -363,28 +327,22 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable {
         );
 
         if (_isETHTransfer) {
-            // Gönderilen miktarın, komisyon + alınmak istenilen miktardan fazla olduğunu kontrol et
             require(
                 msg.value >= fees[2],
                 "_payout: Sent amount is not correct!"
             );
 
             if (addresses[0] != address(0)) {
-                // Invited user'a affiliate komisyonu aktar
                 Payment.safeSendETH(_fromAddress, addresses[0], fees[3]);
             }
 
             if (addresses[1] != address(0)) {
-                // Royalty fee miktarini token creator'a gonder
                 Payment.safeSendETH(_fromAddress, addresses[1], fees[5]);
-                // Satıcıya gönderilen miktarı yolla
                 Payment.safeSendETH(_fromAddress, _seller, fees[0] - fees[5]);
             } else {
-                // Satıcıya gönderilen miktarı yolla
                 Payment.safeSendETH(_fromAddress, _seller, fees[0]);
             }
 
-            // FeeCollector adresine komisyonu gönder
             Payment.safeSendETH(
                 address(this),
                 _FEE_COLLECTOR,
@@ -398,14 +356,12 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable {
             );
 
             if (addresses[0] != address(0)) {
-                // Invited user'a affiliate komisyonu aktar
                 Payment.safeSendToken(
                     _tokenAddress,
                     _fromAddress,
                     addresses[0],
                     fees[3]
                 );
-                // Invited user'a affiliate komisyonu aktar
                 Payment.safeSendToken(
                     _tokenAddress,
                     _fromAddress,
@@ -415,14 +371,12 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable {
             }
 
             if (addresses[1] != address(0)) {
-                // Royalty fee miktarini token creator'a gonder
                 Payment.safeSendToken(
                     _tokenAddress,
                     _fromAddress,
                     addresses[1],
                     fees[5]
                 );
-                // Satıcıya token miktarını gönder
                 Payment.safeSendToken(
                     _tokenAddress,
                     _fromAddress,
@@ -430,7 +384,6 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable {
                     fees[0] - fees[5]
                 );
             } else {
-                // Satıcıya token miktarını gönder
                 Payment.safeSendToken(
                     _tokenAddress,
                     _fromAddress,
@@ -439,7 +392,6 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable {
                 );
             }
 
-            // FeeCollector kontratına komisyonu aktar
             Payment.safeSendToken(
                 _tokenAddress,
                 _bidder,

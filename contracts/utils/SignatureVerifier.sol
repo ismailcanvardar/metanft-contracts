@@ -9,7 +9,6 @@ import "../lib/ExchangeStructs.sol";
 abstract contract SignatureVerifier {
     using ECDSA for bytes32;
 
-    // Kullanılan imzaları tutar, böylelikle bir imza birden çok kez kullanılmaz.
     mapping(bytes => bool) private usedSignatures;
 
     bytes32 public DOMAIN_SEPARATOR;
@@ -39,18 +38,14 @@ abstract contract SignatureVerifier {
         );
     }
 
-    // İmzanın aktifliğini kontrol eder
     function checkSignature(bytes memory signature) public view returns (bool) {
         return usedSignatures[signature];
     }
 
-    // İmzayı kullanılmış statüsüne çeker
     function _useSignature(bytes memory signature) internal {
         usedSignatures[signature] = true;
     }
 
-    // Kullanıcının sağladığı _listing değerleri ile tip hashlerini birleştirip hashler,
-    // sonrasında kullanıcının yolladığı imza ile karşılaştırıp dönen adresle karşılaştırır
     function _verifyListing(
         bytes memory _signature,
         ExchangeStructs.Listing memory _listing,
@@ -87,7 +82,6 @@ abstract contract SignatureVerifier {
         _useSignature(_signature);
     }
 
-    // _verifyListing ile aynı işlemi yapar, farkı _bid yapısıyla imzayı karşılaştırması
     function _verifyBid(
         bytes memory _signature,
         ExchangeStructs.Bid memory _bid,
