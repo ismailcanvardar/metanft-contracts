@@ -5,6 +5,10 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 import "../lib/RoyaltyFeeManagerStructs.sol";
 
+/**
+ * @title RoyaltyFeeManager
+ * @dev A contract for managing royalty fee configurations for NFTs.
+ */
 contract RoyaltyFeeManager {
     uint8 public constant BASE_DIVIDER = 100;
     uint8 public maximumFeePercentage;
@@ -19,21 +23,37 @@ contract RoyaltyFeeManager {
         address newCreator
     );
 
+    /**
+     * @dev Constructor.
+     * @param _maximumPercentage The maximum fee percentage allowed.
+     */
     constructor(uint8 _maximumPercentage) {
         maximumFeePercentage = _maximumPercentage;
     }
 
+    /**
+     * @dev Modifier to check if the caller is the owner of the NFT.
+     */
     modifier onlyAssetOwner(address _originAddress, uint256 _tokenId) {
         IERC721 erc721Instance = IERC721(_originAddress);
         require(erc721Instance.ownerOf(_tokenId) == msg.sender);
         _;
     }
 
+    /**
+     * @dev Modifier to check if the caller is the creator of the NFT.
+     */
     modifier onlyCreator(address _originAddress, uint256 _tokenId) {
         require(creators[_originAddress][_tokenId] == msg.sender);
         _;
     }
 
+    /**
+     * @dev Retrieves the royalty fee configuration for the given NFT.
+     * @param originAddress The address of the NFT contract.
+     * @param tokenId The ID of the NFT.
+     * @return The royalty fee configuration for the NFT.
+     */
     function getRoyaltyFeeConfig(
         address originAddress,
         uint256 tokenId
@@ -41,6 +61,12 @@ contract RoyaltyFeeManager {
         return configs[originAddress][tokenId];
     }
 
+    /**
+     * @dev Sets the creator of the NFT.
+     * @param originAddress The address of the NFT contract.
+     * @param tokenId The ID of the NFT.
+     * @return A boolean indicating whether the creator was set successfully.
+     */
     function setCreator(
         address originAddress,
         uint256 tokenId
@@ -52,6 +78,15 @@ contract RoyaltyFeeManager {
         return true;
     }
 
+    /**
+     * @dev Registers a royalty fee configuration for the NFT.
+     * @param originAddress The address of the NFT contract.
+     * @param tokenId The ID of the NFT.
+     * @param newCreator The address of the new creator.
+     * @param newFeePercentage The new fee percentage for royalties.
+     * @param isOwnershipTransferable A boolean indicating whether the ownership of the NFT is transferable.
+     * @return A boolean indicating whether the royalty fee configuration was registered successfully.
+     */
     function registerRoyaltyFeeConfig(
         address originAddress,
         uint256 tokenId,
@@ -80,6 +115,12 @@ contract RoyaltyFeeManager {
         return false;
     }
 
+    /**
+     * @dev Checks if the NFT has a royalty fee configured.
+     * @param originAddress The address of the NFT contract.
+     * @param tokenId The ID of the NFT.
+     * @return A boolean indicating whether the NFT has a royalty fee configured.
+     */
     function hasRoyaltyFee(
         address originAddress,
         uint256 tokenId
@@ -96,6 +137,12 @@ contract RoyaltyFeeManager {
         return true;
     }
 
+    /**
+     * @dev Calculates the royalty fee amount based on the given amount and fee percentage.
+     * @param amount The original amount.
+     * @param feePercentage The fee percentage for royalties.
+     * @return The royalty fee amount.
+     */
     function calculateRoyaltyFee(
         uint256 amount,
         uint256 feePercentage
