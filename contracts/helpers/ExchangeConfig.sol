@@ -25,7 +25,12 @@ contract ExchangeConfig is IExchangeConfig, Ownable2Step {
      * @dev Returns the current exchange fee percentage.
      * @return The exchange fee percentage.
      */
-    function getExchangeFeePercentage() external view override returns (uint16) {
+    function getExchangeFeePercentage()
+        external
+        view
+        override
+        returns (uint16)
+    {
         return exchangeFeePercentage;
     }
 
