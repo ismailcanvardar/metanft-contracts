@@ -12,5 +12,7 @@ artifacts
 resources/ganache-test.txt
 tmp
 deployments
+data
 
-/resources
+.DS_Store
+yarn-error.log
