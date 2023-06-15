@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.16;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -13,12 +13,15 @@ import "../interfaces/IRoyaltyFeeManager.sol";
 import "../helpers/ExchangeConfig.sol";
 import "../helpers/Payment.sol";
 
-import "../lib/ExchangeEnums.sol";
-import "../lib/ExchangeStructs.sol";
+import "../lib/ExchangeTypes.sol";
 import "../lib/RoyaltyFeeManagerStructs.sol";
 
 import "../utils/SignatureVerifier.sol";
 
+/**
+ * @title Exchange
+ * @dev A decentralized exchange contract for trading ERC721 and ERC20 tokens.
+ */
 contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
     address public feeCollector;
     IAffiliate public affiliate;
@@ -45,6 +48,14 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
     event SetExchangeConfig(IExchangeConfig newAddress);
     event SetRoyaltyFeeManager(IRoyaltyFeeManager newAddress);
 
+    /**
+     * @dev Initializes the Exchange contract.
+     * @param _feeCollector The address to receive exchange fees.
+     * @param _affiliate The affiliate contract address.
+     * @param _exchangeConfig The exchange configuration contract address.
+     * @param _royaltyFeeManager The royalty fee manager contract address.
+     * @param _weth The wrapped Ether token address.
+     */
     constructor(
         address _feeCollector,
         IAffiliate _affiliate,
@@ -61,38 +72,56 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
         weth = _weth;
     }
 
+    // Modifier to restrict function access to the seller
     modifier onlySeller(address _itemOwner) {
         require(_msgSender() == _itemOwner);
         _;
     }
 
-    modifier directBuyCompatible(ExchangeEnums.ListingType _listingType) {
+    // Modifier to restrict function access to compatible listing types (direct sale and dutch auction)
+    modifier directBuyCompatible(ExchangeTypes.ListingType _listingType) {
         require(
-            _listingType == ExchangeEnums.ListingType.DIRECT_SALE ||
-                _listingType == ExchangeEnums.ListingType.DUTCH_AUCTION,
+            _listingType == ExchangeTypes.ListingType.DIRECT_SALE ||
+                _listingType == ExchangeTypes.ListingType.DUTCH_AUCTION,
             "directBuyCompatible: Listing is not valid!"
         );
         _;
     }
 
+    /**
+     * @dev Sets the fee collector address.
+     * @param newAddress The new fee collector address.
+     */
     function setFeeCollector(address newAddress) external onlyOwner {
         feeCollector = newAddress;
 
         emit SetFeeCollector(newAddress);
     }
 
+    /**
+     * @dev Sets the affiliate contract address.
+     * @param newAddress The new affiliate contract address.
+     */
     function setAffiliate(IAffiliate newAddress) external onlyOwner {
         affiliate = newAddress;
 
         emit SetAffiliate(newAddress);
     }
 
+    /**
+     * @dev Sets the exchange configuration contract address.
+     * @param newAddress The new exchange configuration contract address.
+     */
     function setExchangeConfig(IExchangeConfig newAddress) external onlyOwner {
         exchangeConfig = newAddress;
 
         emit SetExchangeConfig(newAddress);
     }
 
+    /**
+     * @dev Sets the royalty fee manager contract address.
+     * @param newAddress The new royalty fee manager contract address.
+     */
     function setRoyaltyFeeManager(
         IRoyaltyFeeManager newAddress
     ) external onlyOwner {
@@ -101,15 +130,21 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
         emit SetRoyaltyFeeManager(newAddress);
     }
 
+    /**
+     * @dev Handles the direct buy of an item.
+     * @param listing The listing information of the item.
+     * @param sig The signature to verify the listing.
+     * @param nonce The nonce used to generate the signature.
+     */
     function directBuy(
-        ExchangeStructs.Listing memory listing,
+        ExchangeTypes.Listing memory listing,
         bytes memory sig,
         uint256 nonce
     ) external payable nonReentrant directBuyCompatible(listing.listingType) {
         _verifyListing(sig, listing, nonce);
 
         uint256 buyAmount = listing.listingType ==
-            ExchangeEnums.ListingType.DIRECT_SALE
+            ExchangeTypes.ListingType.DIRECT_SALE
             ? listing.softCap
             : listing.hardCap;
 
@@ -158,9 +193,16 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
         );
     }
 
+    /**
+     * @dev Finalizes an auction by transferring the item to the highest bidder.
+     * @param listing The listing information of the item.
+     * @param bid The bid information of the highest bidder.
+     * @param sigs The signatures to verify the listing and bid.
+     * @param nonces The nonces used to generate the signatures.
+     */
     function finalizeAuction(
-        ExchangeStructs.Listing memory listing,
-        ExchangeStructs.Bid memory bid,
+        ExchangeTypes.Listing memory listing,
+        ExchangeTypes.Bid memory bid,
         bytes[2] memory sigs,
         uint256[2] memory nonces
     ) external nonReentrant onlySeller(listing.seller) {
@@ -189,8 +231,8 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
         );
 
         if (
-            listing.listingType == ExchangeEnums.ListingType.ENGLISH_AUCTION ||
-            listing.listingType == ExchangeEnums.ListingType.DUTCH_AUCTION
+            listing.listingType == ExchangeTypes.ListingType.ENGLISH_AUCTION ||
+            listing.listingType == ExchangeTypes.ListingType.DUTCH_AUCTION
         ) {
             require(
                 block.timestamp > listing.endTimestamp,
@@ -237,6 +279,15 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
         );
     }
 
+    /**
+     * @dev Internal function to calculate the fees for a transaction.
+     * @param _originAddress The address of the token's contract.
+     * @param _tokenId The ID of the token.
+     * @param _amount The transaction amount.
+     * @param _invited The address of the invited user (optional).
+     * @return fees The array of fee amounts.
+     * @return addresses The array of recipient addresses for the fees.
+     */
     function _getFees(
         address _originAddress,
         uint256 _tokenId,
@@ -293,6 +344,17 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
         }
     }
 
+    /**
+     * @dev Internal function to handle the payout of tokens.
+     * @param _originAddress The address of the token's contract.
+     * @param _tokenId The ID of the token.
+     * @param _amount The transaction amount.
+     * @param _fromAddress The recipient address.
+     * @param _seller The seller address.
+     * @param _bidder The buyer address.
+     * @param _tokenAddress The address of the token to payout (address(0) for ETH).
+     * @param _isETHTransfer Whether the token is ERC721 or not.
+     */
     function _payout(
         address _originAddress,
         uint256 _tokenId,

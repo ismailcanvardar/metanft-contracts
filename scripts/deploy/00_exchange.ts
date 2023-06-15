@@ -1,6 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { CONSTRUCTOR_PARAMS, CONTRACTS } from "../constants";
+import { CONTRACTS } from "../constants";
 
 const func: DeployFunction = async ({
   deployments,
@@ -10,6 +10,15 @@ const func: DeployFunction = async ({
 }: HardhatRuntimeEnvironment) => {
   const { deploy } = deployments;
   const { deployer, feeCollector } = await getNamedAccounts();
+
+  const weth = await deploy(CONTRACTS.mocks.WETH!, {
+    from: deployer,
+    args: [],
+    log: true,
+    skipIfAlreadyDeployed: true,
+  });
+
+  console.log("WETH contract deployed at", weth.address);
 
   const exchangeConfig = await deploy(CONTRACTS.helpers.ExchangeConfig, {
     from: deployer,
@@ -31,7 +40,7 @@ const func: DeployFunction = async ({
 
   const royaltyFeeManager = await deploy(CONTRACTS.helpers.RoyaltyFeeManager, {
     from: deployer,
-    args: [CONSTRUCTOR_PARAMS.RoyaltyFeeManager.MAXIMUM_FEE_PERCENTAGE],
+    args: [],
     log: true,
     skipIfAlreadyDeployed: true,
   });
@@ -40,7 +49,7 @@ const func: DeployFunction = async ({
 
   const exchange = await deploy(CONTRACTS.core.Exchange, {
     from: deployer,
-    args: [feeCollector, affiliate.address, exchangeConfig.address, royaltyFeeManager.address, CONSTRUCTOR_PARAMS.Exchange.WETH],
+    args: [feeCollector, affiliate.address, exchangeConfig.address, royaltyFeeManager.address, weth.address],
     log: true,
     skipIfAlreadyDeployed: true,
   });

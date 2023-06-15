@@ -15,7 +15,7 @@ const func: DeployFunction = async ({
 
   const MOCKERC20_INITIAL_SUPPLY = 1_000_000_000;
 
-  if (chainId !== String(CHAIN_IDS.ELANOR)) {
+  if (chainId !== String(CHAIN_IDS.ELEANOR)) {
     if (CONTRACTS.mocks.MockERC20 && CONTRACTS.mocks.MockERC721) {
       const mockERC20 = await deploy(CONTRACTS.mocks.MockERC20, {
         from: deployer,

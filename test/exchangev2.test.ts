@@ -55,7 +55,7 @@ describe("Exchange", function () {
     const affiliate = await Affiliate.connect(deployer).deploy();
     const exchangeConfig = await ExchangeConfig.connect(deployer).deploy();
     const royaltyFeeManager = await RoyaltyFeeManager.connect(deployer).deploy(
-      CONSTRUCTOR_PARAMS.RoyaltyFeeManager.MAXIMUM_FEE_PERCENTAGE
+      1_000
     );
     const weth = await WETH.connect(deployer).deploy(WETH_INITIAL_SUPPLY);
     const exchange = await Exchange.connect(deployer).deploy(

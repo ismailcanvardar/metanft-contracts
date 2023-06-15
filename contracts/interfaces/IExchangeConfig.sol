@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.16;
 
 interface IExchangeConfig {
-    function getExchangeFeePercentage() external view returns (uint8);
+    function getExchangeFeePercentage() external view returns (uint16);
 
     function calculateExchangeFee(
         uint256 amount

@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.16;
 
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
+/**
+ * @title Affiliate
+ * @dev A contract for managing affiliate relationships and fees.
+ */
 contract Affiliate is Ownable2Step {
     uint8 public invitorFeePercentage;
     uint8 public invitedFeePercentage;
@@ -12,6 +16,10 @@ contract Affiliate is Ownable2Step {
     event SetAffiliateFeePercentage(uint8 newInvitorFee, uint8 newInvitedFee);
     event RegisterAffiliate(address invitor, address invited);
 
+    /**
+     * @dev Constructor.
+     * Initializes the contract and sets the default fee percentages.
+     */
     constructor() {
         _transferOwnership(_msgSender());
 
@@ -19,6 +27,13 @@ contract Affiliate is Ownable2Step {
         invitedFeePercentage = 10;
     }
 
+    /**
+     * @dev Sets the affiliate fee percentages.
+     * Only the contract owner can call this function.
+     * @param newInvitorFeePercentage The new fee percentage for the invitor.
+     * @param newInvitedFeePercentage The new fee percentage for the invited user.
+     * @return A boolean indicating whether the fee percentages were set successfully.
+     */
     function setAffiliateFeePercentages(
         uint8 newInvitorFeePercentage,
         uint8 newInvitedFeePercentage
@@ -34,6 +49,12 @@ contract Affiliate is Ownable2Step {
         return true;
     }
 
+    /**
+     * @dev Registers an affiliate relationship.
+     * @param invitor The address of the invitor.
+     * @param invited The address of the invited user.
+     * @return A boolean indicating whether the affiliate relationship was registered successfully.
+     */
     function registerAffiliate(
         address invitor,
         address invited
@@ -56,6 +77,12 @@ contract Affiliate is Ownable2Step {
         return false;
     }
 
+    /**
+     * @dev Calculates the affiliate fees for a given exchange fee amount.
+     * @param exchangeFeeAmount The amount of the exchange fee.
+     * @return invitorFeeAmount The invitor's fee amount.
+     * @return invitedFeeAmount The invited user's fee amount.
+     */
     function calculateAffiliateFees(
         uint256 exchangeFeeAmount
     )
@@ -69,6 +96,11 @@ contract Affiliate is Ownable2Step {
         );
     }
 
+    /**
+     * @dev Retrieves the affiliate address for the given invited user.
+     * @param invited The address of the invited user.
+     * @return The affiliate address.
+     */
     function getAffiliateAddress(
         address invited
     ) public view returns (address) {

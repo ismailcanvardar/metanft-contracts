@@ -2,11 +2,9 @@ interface IContracts {
   [key: string]: Object;
   core: {
     Exchange: string;
-    Rentable: string;
   };
   helpers: {
     ExchangeConfig: string;
-    RentableConfig: string;
     RoyaltyFeeManager: string;
   };
   mocks: {
@@ -16,10 +14,6 @@ interface IContracts {
   };
   utils: {
     Affiliate: string;
-    Divisible?: string;
-    DivisibleProxyManager: string;
-    Fractional?: string;
-    FractionalProxyManager: string;
     Multicall: string;
   };
 }
@@ -27,11 +21,9 @@ interface IContracts {
 const CONTRACTS: IContracts = {
   core: {
     Exchange: "Exchange",
-    Rentable: "Rentable",
   },
   helpers: {
     ExchangeConfig: "ExchangeConfig",
-    RentableConfig: "RentableConfig",
     RoyaltyFeeManager: "RoyaltyFeeManager"
   },
   mocks: {
@@ -41,10 +33,6 @@ const CONTRACTS: IContracts = {
   },
   utils: {
     Affiliate: "Affiliate",
-    Divisible: "Divisible",
-    DivisibleProxyManager: "DivisibleProxyManager",
-    Fractional: "Fractional",
-    FractionalProxyManager: "FractionalProxyManager",
     Multicall: "Multicall"
   },
 };

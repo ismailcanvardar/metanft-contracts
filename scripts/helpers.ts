@@ -1,53 +1,6 @@
 import { BigNumber, ethers } from "ethers";
 import { HardhatEthersHelpers } from "hardhat/types";
-import { IBid, IListing } from "./signature-helper";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-
-const createListingTuple = (listing: IListing): any[] => {
-  const {
-    originAddress,
-    tokenId,
-    seller,
-    startTimestamp,
-    endTimestamp,
-    softCap,
-    hardCap,
-    isERC20,
-    erc20TokenAddress,
-    listingType,
-  } = listing;
-  return [
-    originAddress,
-    tokenId,
-    seller,
-    startTimestamp,
-    endTimestamp,
-    softCap,
-    hardCap,
-    isERC20,
-    erc20TokenAddress,
-    listingType,
-  ];
-};
-
-const createBidTuple = (bid: IBid): any[] => {
-  const {
-    originAddress,
-    tokenId,
-    bidder,
-    bidAmount,
-    isERC20,
-    erc20TokenAddress,
-  } = bid;
-  return [
-    originAddress,
-    tokenId,
-    bidder,
-    bidAmount,
-    isERC20,
-    erc20TokenAddress,
-  ];
-};
 
 const getBlockTimestamp = async (
   ethers: HardhatEthersHelpers
@@ -88,8 +41,6 @@ const calculateExchangeFee = (amount: number, percentage: number) => {
 };
 
 export {
-  createBidTuple,
-  createListingTuple,
   getBlockTimestamp,
   toWei,
   callMethod,

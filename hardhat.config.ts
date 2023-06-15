@@ -82,7 +82,7 @@ const config: HardhatUserConfig = {
     },
     eleanor: {
       url: process.env.ELEANOR_URL || "",
-      chainId: CHAIN_IDS.ELANOR,
+      chainId: CHAIN_IDS.ELEANOR,
       accounts: [`0x${privateKey}`],
     },
   },
