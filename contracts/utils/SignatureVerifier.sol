@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.16;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-import "../lib/ExchangeEnums.sol";
-import "../lib/ExchangeStructs.sol";
+import "../lib/ExchangeTypes.sol";
 
 /**
  * @title SignatureVerifier
@@ -67,7 +66,7 @@ abstract contract SignatureVerifier {
      */
     function _verifyListing(
         bytes memory _signature,
-        ExchangeStructs.Listing memory _listing,
+        ExchangeTypes.Listing memory _listing,
         uint256 _nonce
     ) internal {
         require(
@@ -109,7 +108,7 @@ abstract contract SignatureVerifier {
      */
     function _verifyBid(
         bytes memory _signature,
-        ExchangeStructs.Bid memory _bid,
+        ExchangeTypes.Bid memory _bid,
         uint256 _nonce
     ) internal {
         require(

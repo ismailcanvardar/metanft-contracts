@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.16;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -13,8 +13,7 @@ import "../interfaces/IRoyaltyFeeManager.sol";
 import "../helpers/ExchangeConfig.sol";
 import "../helpers/Payment.sol";
 
-import "../lib/ExchangeEnums.sol";
-import "../lib/ExchangeStructs.sol";
+import "../lib/ExchangeTypes.sol";
 import "../lib/RoyaltyFeeManagerStructs.sol";
 
 import "../utils/SignatureVerifier.sol";
@@ -80,10 +79,10 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
     }
 
     // Modifier to restrict function access to compatible listing types (direct sale and dutch auction)
-    modifier directBuyCompatible(ExchangeEnums.ListingType _listingType) {
+    modifier directBuyCompatible(ExchangeTypes.ListingType _listingType) {
         require(
-            _listingType == ExchangeEnums.ListingType.DIRECT_SALE ||
-                _listingType == ExchangeEnums.ListingType.DUTCH_AUCTION,
+            _listingType == ExchangeTypes.ListingType.DIRECT_SALE ||
+                _listingType == ExchangeTypes.ListingType.DUTCH_AUCTION,
             "directBuyCompatible: Listing is not valid!"
         );
         _;
@@ -138,14 +137,14 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
      * @param nonce The nonce used to generate the signature.
      */
     function directBuy(
-        ExchangeStructs.Listing memory listing,
+        ExchangeTypes.Listing memory listing,
         bytes memory sig,
         uint256 nonce
     ) external payable nonReentrant directBuyCompatible(listing.listingType) {
         _verifyListing(sig, listing, nonce);
 
         uint256 buyAmount = listing.listingType ==
-            ExchangeEnums.ListingType.DIRECT_SALE
+            ExchangeTypes.ListingType.DIRECT_SALE
             ? listing.softCap
             : listing.hardCap;
 
@@ -202,8 +201,8 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
      * @param nonces The nonces used to generate the signatures.
      */
     function finalizeAuction(
-        ExchangeStructs.Listing memory listing,
-        ExchangeStructs.Bid memory bid,
+        ExchangeTypes.Listing memory listing,
+        ExchangeTypes.Bid memory bid,
         bytes[2] memory sigs,
         uint256[2] memory nonces
     ) external nonReentrant onlySeller(listing.seller) {
@@ -232,8 +231,8 @@ contract Exchange is Payment, ReentrancyGuard, SignatureVerifier, Ownable2Step {
         );
 
         if (
-            listing.listingType == ExchangeEnums.ListingType.ENGLISH_AUCTION ||
-            listing.listingType == ExchangeEnums.ListingType.DUTCH_AUCTION
+            listing.listingType == ExchangeTypes.ListingType.ENGLISH_AUCTION ||
+            listing.listingType == ExchangeTypes.ListingType.DUTCH_AUCTION
         ) {
             require(
                 block.timestamp > listing.endTimestamp,

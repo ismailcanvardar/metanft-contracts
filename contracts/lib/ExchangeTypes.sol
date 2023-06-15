@@ -1,9 +1,17 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.16;
 
-import "./ExchangeEnums.sol";
+library ExchangeTypes {
+    string constant DIRECT_SALE = "DIRECT_SALE";
+    string constant ENGLISH_AUCTION = "ENGLISH_AUCTION";
+    string constant DUTCH_AUCTION = "DUTCH_AUCTION";
 
-abstract contract ExchangeStructs {
+    enum ListingType {
+        DIRECT_SALE,
+        ENGLISH_AUCTION,
+        DUTCH_AUCTION
+    }
+
     struct Bid {
         address originAddress;
         uint256 tokenId;
@@ -23,6 +31,6 @@ abstract contract ExchangeStructs {
         uint256 hardCap;
         bool isERC20;
         address erc20TokenAddress;
-        ExchangeEnums.ListingType listingType;
+        ListingType listingType;
     }
 }
